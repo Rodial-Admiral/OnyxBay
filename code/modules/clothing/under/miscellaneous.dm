@@ -721,7 +721,7 @@
 		return 0
 
 	return 1
-
+	
 /obj/item/clothing/under/contortionist/verb/crawl_through_vent()
 	set name = "Crawl Through Vent"
 	set category = "Object"
@@ -731,4 +731,4 @@
 	if(istype(user) && user.w_uniform == src && check_clothing(user))
 		var/pipe = user.start_ventcrawl()
 		if(pipe)
-			user.handle_ventcrawl(pipe)
+			user.handle_ventcrawl(pipe)	

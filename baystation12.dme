@@ -2678,7 +2678,6 @@
 #include "maps\exodus\derelicts\casino.dmm"
 #include "maps\exodus\derelicts\djstation.dmm"
 #include "maps\exodus\derelicts\snowasteroid.dmm"
-#include "maps\exodus\derelicts\thunder.dmm"
 #include "maps\exodus\derelicts\bearcat\bearcat.dm"
 #include "maps\exodus\derelicts\bearcat\bearcat_areas.dm"
 #include "maps\exodus\derelicts\bearcat\bearcat-1.dmm"

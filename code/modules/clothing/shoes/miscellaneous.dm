@@ -30,7 +30,7 @@
 	desc = "When you REALLY want to turn up the heat."
 	icon_state = "swat"
 	force = 5
-	armor = list(melee = 80, bullet = 80, laser = 80,energy = 80, bomb = 80, bio = 80, rad = 80)
+	armor = list(melee = 80, bullet = 60, laser = 60,energy = 25, bomb = 50, bio = 10, rad = 0)
 	item_flags = ITEM_FLAG_NOSLIP
 	siemens_coefficient = 0.6
 	can_hold_knife = 1
@@ -44,7 +44,6 @@
 	name = "dress shoes"
 	desc = "The height of fashion, and they're pre-polished!"
 	icon_state = "laceups"
-	armor = list(melee = 40, bullet = 40, laser = 40, energy = 40, bomb = 40, bio = 40, rad = 40)
 
 /obj/item/clothing/shoes/sandal
 	desc = "A pair of rather plain, wooden sandals."
@@ -126,7 +125,6 @@
 	name = "laceup shoes"
 	desc = "The height of fashion, and they're pre-polished!"
 	icon_state = "laceups"
-	armor = list(melee = 80, bullet = 80, laser = 80, energy = 80, bomb = 80, bio = 80, rad = 80)
 
 /obj/item/clothing/shoes/swimmingfins
 	desc = "Help you swim good."

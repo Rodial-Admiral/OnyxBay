@@ -157,6 +157,13 @@
 	charge_meter = 0
 	clumsy_unaffected = 1
 
+/obj/item/weapon/gun/energy/staff/special_check(var/mob/user)
+	if((user.mind && !GLOB.wizards.is_antagonist(user.mind)))
+		to_chat(usr, "<span class='warning'>You focus your mind on \the [src], but nothing happens!</span>")
+		return 0
+
+	return ..()
+
 /obj/item/weapon/gun/energy/staff/handle_click_empty(mob/user = null)
 	if (user)
 		user.visible_message("*fizzle*", "<span class='danger'>*fizzle*</span>")

@@ -145,7 +145,7 @@
 	icon_state = "shovel"
 	obj_flags = OBJ_FLAG_CONDUCTIBLE
 	slot_flags = SLOT_BELT
-	force = 20
+	force = 12.5
 	throwforce = 8.5
 	mod_weight = 1.25
 	mod_reach = 1.5

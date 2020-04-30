@@ -23,4 +23,3 @@
 	name = "white gloves"
 	desc = "These look pretty fancy."
 	icon_state = "white"
-	armor = list(melee = 45, bullet = 60, laser = 60,energy = 25, bomb = 50, bio = 10, rad = 0)

@@ -18,7 +18,7 @@
 	desc = "Tall synthleather boots with an artificial shine."
 	icon_state = "jackboots"
 	force = 3
-	armor = list(melee = 40, bullet = 80, laser = 40, energy = 15, bomb = 20, bio = 10, rad = 0)
+	armor = list(melee = 40, bullet = 40, laser = 40, energy = 15, bomb = 20, bio = 10, rad = 0)
 	siemens_coefficient = 0.7
 	can_hold_knife = 1
 	cold_protection = FEET

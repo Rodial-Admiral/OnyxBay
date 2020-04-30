@@ -36,24 +36,6 @@
 	mod_handy = 1.5
 	slot_flags = SLOT_BELT | SLOT_BACK
 
-/obj/item/weapon/material/sword/katana/officersword
-	name = "fleet officer's sword"
-	desc = "A polished sword issued to officers of the fleet."
-	icon_state = "officersword"
-	item_state = "officersword"
-	w_class = ITEM_SIZE_LARGE
-	force_const = 1
-	thrown_force_const = 5
-	sharp = 1
-	edge = 1
-	mod_weight = 1.3
-	mod_reach = 1.5
-	mod_handy = 1.5
-	attack_verb = list("attacked", "slashed", "stabbed", "sliced", "torn", "ripped", "diced", "cut")
-	hitsound = 'sound/weapons/bladeslice.ogg'
-	slot_flags = SLOT_BELT
-	applies_material_colour = FALSE
-
 /obj/item/weapon/material/sword/katana/replica
 	desc = "The best friend of a samurai wannabe. This one looks not so sharp."
 	edge = 0

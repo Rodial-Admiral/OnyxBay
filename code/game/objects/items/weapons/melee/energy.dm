@@ -115,8 +115,8 @@
 	name = "energy sword"
 	desc = "May the force be within you."
 	icon_state = "sword0"
-	active_force = 35
-	active_throwforce = 35
+	active_force = 45
+	active_throwforce = 45
 	force = 3
 	throwforce = 5
 	throw_speed = 1
@@ -210,8 +210,8 @@
 	name = "dualsaber"
 	desc = "May the Dark side be within you."
 	icon_state = "dualsaber0"
-	active_force = 50
-	active_throwforce = 50
+	active_force = 70
+	active_throwforce = 70
 	force = 5
 	throwforce = 10
 	throw_speed = 1

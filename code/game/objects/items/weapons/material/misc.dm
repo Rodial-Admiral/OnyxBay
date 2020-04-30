@@ -6,7 +6,6 @@
 	icon_state = "harpoon"
 	item_state = "harpoon"
 	force_divisor = 0.3 // 18 with hardness 60 (steel)
-	thrown_force_const = 30
 	attack_verb = list("jabbed","stabbed","ripped")
 
 /obj/item/weapon/material/hatchet

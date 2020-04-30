@@ -15,6 +15,8 @@
 
 	var/initial_cell_type = /obj/item/weapon/cell/hyper
 	var/initial_capacitor_type = /obj/item/weapon/stock_parts/capacitor/adv
+	var/slowdown_held = 2
+	var/slowdown_worn = 1
 
 /obj/item/weapon/gun/magnetic/railgun/Initialize()
 
@@ -24,6 +26,11 @@
 	cell = new initial_cell_type(src)
 	if (ispath(loaded))
 		loaded = new loaded
+	slowdown_per_slot[slot_l_hand] =  slowdown_held
+	slowdown_per_slot[slot_r_hand] =  slowdown_held
+	slowdown_per_slot[slot_back] =    slowdown_worn
+	slowdown_per_slot[slot_belt] =    slowdown_worn
+	slowdown_per_slot[slot_s_store] = slowdown_worn
 
 	. = ..()
 
@@ -61,6 +68,9 @@
 	initial_cell_type = /obj/item/weapon/cell/infinite
 	initial_capacitor_type = /obj/item/weapon/stock_parts/capacitor/super
 
+	slowdown_held = 3
+	slowdown_worn = 2
+
 	slot_flags = SLOT_BACK
 	w_class = ITEM_SIZE_NO_CONTAINER
 
@@ -83,6 +93,8 @@
 	initial_cell_type = /obj/item/weapon/cell/hyper
 	initial_capacitor_type = /obj/item/weapon/stock_parts/capacitor/adv
 	slot_flags = SLOT_BACK
+	slowdown_held = 0
+	slowdown_worn = 0
 	power_cost = 100
 	load_type = /obj/item/weapon/magnetic_ammo
 	projectile_type = /obj/item/projectile/bullet/magnetic/flechette
