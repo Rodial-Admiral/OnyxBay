@@ -20,7 +20,6 @@ var/list/gamemode_cache = list()
 	var/log_adminwarn = 0					// Log warnings admins get about bomb construction and such
 	var/log_pda = 0							// Log pda messages
 	var/log_hrefs = 0						// Log all links clicked in-game. Could be used for debugging and tracking down exploits
-	var/log_runtime = 0						// Log world.log to a file
 	var/log_world_output = 0				// Log world.log << messages
 
 	var/sql_enabled = FALSE					// SQL storage. If you want to enable it, use sql_enabled var in config file
@@ -178,6 +177,7 @@ var/list/gamemode_cache = list()
 
 	var/enter_allowed = 1
 	var/player_limit = 0
+	var/hard_player_limit = 0
 
 	var/use_irc_bot = 0
 	var/irc_bot_host = ""
@@ -197,8 +197,6 @@ var/list/gamemode_cache = list()
 	// 15, 45, 70 minutes respectively
 	var/list/event_delay_upper = list(EVENT_LEVEL_MUNDANE = 9000,	EVENT_LEVEL_MODERATE = 27000,	EVENT_LEVEL_MAJOR = 42000)
 
-	var/roundstart_events = FALSE			// Allow roundstart events to appear. See eof.md
-
 	var/aliens_allowed = 0
 	var/alien_eggs_allowed = 0
 	var/ninjas_allowed = 0
@@ -208,6 +206,8 @@ var/list/gamemode_cache = list()
 	var/dooc_allowed = 1
 	var/dsay_allowed = 1
 	var/aooc_allowed = 1
+
+	var/emojis = 1
 
 	var/starlight = 0	// Whether space turfs have ambient light or not
 
@@ -242,6 +242,8 @@ var/list/gamemode_cache = list()
 	var/allow_ic_printing = TRUE //Whether players should be allowed to print IC circuits from scripts.
 
 	var/server_port
+
+	var/donations = FALSE
 
 	var/projectile_basketball
 
@@ -328,9 +330,6 @@ var/list/gamemode_cache = list()
 				if ("use_recursive_explosions")
 					use_recursive_explosions = 1
 
-				if ("roundstart_events")
-					roundstart_events = 1
-
 				if ("log_ooc")
 					config.log_ooc = 1
 
@@ -384,13 +383,6 @@ var/list/gamemode_cache = list()
 
 				if ("log_hrefs")
 					config.log_hrefs = 1
-
-				if ("log_runtime")
-					config.log_runtime = 1
-					var/newlog = file("data/logs/runtimes/runtime-[time2text(world.realtime, "YYYY-MM-DD")].log")
-					if(runtime_diary != newlog)
-						to_world_log("Now logging runtimes to data/logs/runtimes/runtime-[time2text(world.realtime, "YYYY-MM-DD")].log")
-						runtime_diary = newlog
 
 				if ("generate_asteroid")
 					config.generate_map = 1
@@ -506,6 +498,9 @@ var/list/gamemode_cache = list()
 
 				if ("disable_aooc")
 					config.aooc_allowed = 0
+
+				if ("disable_emojis")
+					config.emojis = 0
 
 				if ("disable_entry")
 					config.enter_allowed = 0
@@ -821,9 +816,14 @@ var/list/gamemode_cache = list()
 					radiation_lower_limit = text2num(value)
 				if("player_limit")
 					player_limit = text2num(value)
+				if("hard_player_limit")
+					hard_player_limit = text2num(value)
 
 				if("server_port")
 					server_port = text2num(value)
+
+				if("donations")
+					donations = TRUE
 
 				else
 					log_misc("Unknown setting in configuration: '[name]'")

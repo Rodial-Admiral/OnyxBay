@@ -49,6 +49,8 @@
 			return global.SSantags;
 		if("SSatoms")
 			return global.SSatoms;
+		if("SScharacter_setup")
+			return global.SScharacter_setup;
 		if("SScircuit")
 			return global.SScircuit;
 		if("SScircuit_components")
@@ -467,8 +469,6 @@
 			return global.global_message_listener;
 		if("global_vars_")
 			return global.global_vars_;
-		if("gravity_is_on")
-			return global.gravity_is_on;
 		if("gyrotrons")
 			return global.gyrotrons;
 		if("gzn_check")
@@ -697,8 +697,6 @@
 			return global.powerinstances;
 		if("powers")
 			return global.powers;
-		if("preferences_datums")
-			return global.preferences_datums;
 		if("priority_air_alarms")
 			return global.priority_air_alarms;
 		if("priority_announcement")
@@ -769,8 +767,6 @@
 			return global.roundstart_hour;
 		if("rune_list")
 			return global.rune_list;
-		if("runtime_diary")
-			return global.runtime_diary;
 		if("rus_unicode_conversion")
 			return global.rus_unicode_conversion;
 		if("same_wires")
@@ -1038,6 +1034,8 @@
 			global.SSantags=newval;
 		if("SSatoms")
 			global.SSatoms=newval;
+		if("SScharacter_setup")
+			global.SScharacter_setup=newval;
 		if("SScircuit")
 			global.SScircuit=newval;
 		if("SScircuit_components")
@@ -1456,8 +1454,6 @@
 			global.global_message_listener=newval;
 		if("global_vars_")
 			global.global_vars_=newval;
-		if("gravity_is_on")
-			global.gravity_is_on=newval;
 		if("gyrotrons")
 			global.gyrotrons=newval;
 		if("gzn_check")
@@ -1686,8 +1682,6 @@
 			global.powerinstances=newval;
 		if("powers")
 			global.powers=newval;
-		if("preferences_datums")
-			global.preferences_datums=newval;
 		if("priority_air_alarms")
 			global.priority_air_alarms=newval;
 		if("priority_announcement")
@@ -1758,8 +1752,6 @@
 			global.roundstart_hour=newval;
 		if("rune_list")
 			global.rune_list=newval;
-		if("runtime_diary")
-			global.runtime_diary=newval;
 		if("rus_unicode_conversion")
 			global.rus_unicode_conversion=newval;
 		if("same_wires")
@@ -2002,6 +1994,7 @@
 	"SSalarm",
 	"SSantags",
 	"SSatoms",
+	"SScharacter_setup",
 	"SScircuit",
 	"SScircuit_components",
 	"SSevac",
@@ -2211,7 +2204,6 @@
 	"ghost_traps",
 	"global_message_listener",
 	"global_vars_",
-	"gravity_is_on",
 	"gyrotrons",
 	"gzn_check",
 	"hadevent",
@@ -2327,7 +2319,6 @@
 	"power_alarm",
 	"powerinstances",
 	"powers",
-	"preferences_datums",
 	"priority_air_alarms",
 	"priority_announcement",
 	"priv_all_access",
@@ -2364,7 +2355,6 @@
 	"round_start_time",
 	"roundstart_hour",
 	"rune_list",
-	"runtime_diary",
 	"rus_unicode_conversion",
 	"same_wires",
 	"secret_force_mode",

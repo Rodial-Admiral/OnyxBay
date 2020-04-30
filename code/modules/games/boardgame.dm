@@ -9,7 +9,7 @@
 	var/board = list()
 	var/selected = -1
 
-/obj/item/weapon/board/examine(mob/user, var/distance = -1)
+/obj/item/weapon/board/examine(mob/user, distance = -1)
 	if(in_range(user,src))
 		user.set_machine(src)
 		interact(user)
@@ -26,7 +26,7 @@ obj/item/weapon/board/attackby(obj/item/I as obj, mob/user as mob)
 	if(!addPiece(I,user))
 		..()
 
-/obj/item/weapon/board/proc/addPiece(obj/item/I as obj, mob/user as mob, var/tile = 0)
+/obj/item/weapon/board/proc/addPiece(obj/item/I as obj, mob/user as mob, tile = 0)
 	if(I.w_class != ITEM_SIZE_TINY) //only small stuff
 		user.show_message("<span class='warning'>\The [I] is too big to be used as a board piece.</span>")
 		return 0
@@ -275,7 +275,8 @@ THAT STUPID GAME KIT
 
 /obj/item/weapon/game_kit/proc/update()
 	var/datum/asset/assets = get_asset_datum(/datum/asset/simple/chess)
-	assets.send(usr)
+	ASSERT(usr.client)
+	assets.send(usr.client)
 
 	var/dat = text("<CENTER><B>Game Board</B></CENTER><BR><a href='?src=\ref[];mode=hia'>[]</a> <a href='?src=\ref[];mode=remove'> Chess Removal</a><HR><table width=256  border= 0  height=256  cellspacing= 0  cellpadding= 0 >", src, (src.selected ? text("Selected: []", src.selected) : "Nothing Selected"), src)
 	for (var/y = 1 to 8)

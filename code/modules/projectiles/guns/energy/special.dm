@@ -157,7 +157,7 @@
 	charge_meter = 0
 	clumsy_unaffected = 1
 
-/obj/item/weapon/gun/energy/staff/special_check(var/mob/user)
+/obj/item/weapon/gun/energy/staff/special_check(mob/user)
 	if((user.mind && !GLOB.wizards.is_antagonist(user.mind)))
 		to_chat(usr, "<span class='warning'>You focus your mind on \the [src], but nothing happens!</span>")
 		return 0
@@ -209,7 +209,7 @@ obj/item/weapon/gun/energy/staff/focus
 	slot_flags = SLOT_BELT|SLOT_BACK
 	w_class = ITEM_SIZE_NORMAL
 	force = 8
-	origin_tech = list(TECH_MATERIAL = 4, TECH_PHORON = 4, TECH_ENGINEERING = 6, TECH_COMBAT = 3)
+	origin_tech = list(TECH_MATERIAL = 6, TECH_PHORON = 5, TECH_ENGINEERING = 6, TECH_COMBAT = 3)
 	matter = list(MATERIAL_STEEL = 4000)
 	projectile_type = /obj/item/projectile/beam/plasmacutter
 	max_shots = 10

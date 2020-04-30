@@ -11,7 +11,7 @@ var/global/list/possible_changeling_IDs = list("Alpha","Beta","Gamma","Delta","E
 	var/changelingID = "Changeling"
 	var/geneticdamage = 0
 	var/isabsorbing = 0
-	var/geneticpoints = 15
+	var/geneticpoints = 10
 	var/purchasedpowers = list()
 	var/mimicing = ""
 	var/lingabsorbedcount = 1
@@ -28,6 +28,8 @@ var/global/list/possible_changeling_IDs = list("Alpha","Beta","Gamma","Delta","E
 	var/heal = 0
 	var/datum/reagents/pick_chemistry
 	var/isdetachingnow = FALSE
+	var/FLP_last_time_used = 0
+	var/rapidregen_active = FALSE
 
 /datum/changeling/New()
 	..()
@@ -49,12 +51,12 @@ var/global/list/possible_changeling_IDs = list("Alpha","Beta","Gamma","Delta","E
 	chem_charges = min(max(0, chem_charges+chem_recharge_rate), chem_storage)
 	geneticdamage = max(0, geneticdamage-1)
 
-/datum/changeling/proc/GetDNA(var/dna_owner)
+/datum/changeling/proc/GetDNA(dna_owner)
 	for(var/datum/absorbed_dna/DNA in absorbed_dna)
 		if(dna_owner == DNA.name)
 			return DNA
 
-/mob/proc/absorbDNA(var/datum/absorbed_dna/newDNA)
+/mob/proc/absorbDNA(datum/absorbed_dna/newDNA)
 	var/datum/changeling/changeling = null
 	if(src.mind && src.mind.changeling)
 		changeling = src.mind.changeling
@@ -154,7 +156,7 @@ var/global/list/possible_changeling_IDs = list("Alpha","Beta","Gamma","Delta","E
 
 
 //Used to dump the languages from the changeling datum into the actual mob.
-/mob/proc/changeling_update_languages(var/updated_languages)
+/mob/proc/changeling_update_languages(updated_languages)
 
 	languages = list()
 	for(var/language in updated_languages)
@@ -217,7 +219,7 @@ var/global/list/possible_changeling_IDs = list("Alpha","Beta","Gamma","Delta","E
 				to_chat(src, "<span class='notice'>We stab [T] with the proboscis.</span>")
 				src.visible_message("<span class='danger'>[src] stabs [T] with the proboscis!</span>")
 				to_chat(T, "<span class='danger'>You feel a sharp stabbing pain!</span>")
-				affecting.take_damage(39, 0, DAM_SHARP, "large organic needle")
+				affecting.take_external_damage(39, 0, DAM_SHARP, "large organic needle")
 
 		feedback_add_details("changeling_powers","A[stage]")
 		if(!do_mob(src, T, 150))
@@ -237,6 +239,11 @@ var/global/list/possible_changeling_IDs = list("Alpha","Beta","Gamma","Delta","E
 			changeling.absorbed_languages += language
 
 	changeling_update_languages(changeling.absorbed_languages)
+
+	if(T.reagents)
+		T.reagents.trans_to(reagents, T.reagents.total_volume)
+	if(T.vessel)
+		T.vessel.remove_any(T.vessel.total_volume)
 
 	var/datum/absorbed_dna/newDNA = new(T.real_name, T.dna, T.species.name, T.languages, T.modifiers)
 	absorbDNA(newDNA)
@@ -325,7 +332,7 @@ var/global/list/possible_changeling_IDs = list("Alpha","Beta","Gamma","Delta","E
 	feedback_add_details("changeling_powers","TR")
 	return 1
 
-/mob/proc/handle_changeling_transform(var/datum/absorbed_dna/chosen_dna)
+/mob/proc/handle_changeling_transform(datum/absorbed_dna/chosen_dna)
 	src.visible_message("<span class='warning'>[src] transforms!</span>")
 
 	src.dna = chosen_dna.dna
@@ -453,64 +460,64 @@ var/global/list/possible_changeling_IDs = list("Alpha","Beta","Gamma","Delta","E
 
 
 //Fake our own death and fully heal. You will appear to be dead but regenerate fully after a short delay.
-/mob/proc/changeling_fakedeath()
+/mob/living/carbon/human/proc/changeling_fakedeath()
 	set category = "Changeling"
 	set name = "Regenerative Stasis (20)"
 
 	var/datum/changeling/changeling = changeling_power(20,1,100,DEAD)
-	if(!changeling)	return
+	if(!changeling)
+		return
 
-	if(src.mind.changeling.true_dead)
+	if(mind.changeling.true_dead)
 		to_chat(src, "<span class='notice'>We can not do this. We are really dead.</span>")
 		return
 
-	if(!src.stat && alert("Are we sure we wish to fake our death?",,"Yes","No") == "No")//Confirmation for living changelings if they want to fake their death
+	if(!stat && alert("Are we sure we wish to fake our death?",,"Yes","No") == "No")//Confirmation for living changelings if they want to fake their death
 		return
-	to_chat(src, "<span class='notice'>We have relocated our core organ into chest and will attempt to regenerate our form.</span>")
 
-	var/mob/living/carbon/C = src
+	if(status_flags & FAKEDEATH)
+		return
 
-	C.status_flags |= FAKEDEATH		//play dead
-	C.update_canmove()
-	C.remove_changeling_powers()
+	status_flags |= FAKEDEATH
+	update_canmove()
+	remove_changeling_powers()
 
-	C.emote("gasp")
+	emote("gasp")
 
-	spawn(rand(800,2000))
-		if(changeling_power(20,1,100,DEAD))
-			// charge the changeling chemical cost for stasis
-			changeling.chem_charges -= 20
+	addtimer(CALLBACK(src, .end_fakedeath), rand(80 SECONDS, 200 SECONDS))
 
-			to_chat(C, "<span class='notice'><font size='5'>We are ready to rise.  Use the <b>Revive</b> verb when you are ready.</font></span>")
-			C.verbs += /mob/proc/changeling_revive
-			spawn(10 SECONDS)
-				C.changeling_revive()
+/mob/living/carbon/human/proc/end_fakedeath()
+	if(QDELETED(src))
+		return
+	if(changeling_power(20,1,100,DEAD))
+		// charge the changeling chemical cost for stasis
+		mind.changeling.chem_charges -= 20
+
+		to_chat(src, "<span class='notice'><font size='5'>We are ready to rise.  Use the <b>Revive</b> verb when you are ready.</font></span>")
+		verbs += /mob/living/carbon/human/proc/changeling_revive
+		addtimer(CALLBACK(src, .changeling_revive), 10 SECONDS)
 
 	feedback_add_details("changeling_powers","FD")
-	return 1
 
-/mob/proc/changeling_revive()
+/mob/living/carbon/human/proc/changeling_revive()
 	set category = "Changeling"
 	set name = "Revive"
 
-	var/mob/living/carbon/C = src
-
-	if(C.mind.changeling.true_dead)
-		to_chat(C, "<span class='notice'>We can not do this. We are really dead.</span>")
+	if(mind.changeling.true_dead)
+		to_chat(src, "<span class='notice'>We can not do this. We are really dead.</span>")
 		return
 
 	// restore us to health
-	C.revive()
+	revive(ignore_prosthetic_prefs = TRUE)
 	// remove our fake death flag
-	C.status_flags &= ~(FAKEDEATH)
+	status_flags &= ~(FAKEDEATH)
 	// let us move again
-	C.update_canmove()
+	update_canmove()
 	// re-add out changeling powers
-	C.make_changeling()
+	make_changeling()
 	// sending display messages
-	to_chat(C, "<span class='notice'>We have regenerated.</span>")
-	C.verbs -= /mob/proc/changeling_revive
-
+	to_chat(src, "<span class='notice'>We have regenerated.</span>")
+	verbs -= /mob/living/carbon/human/proc/changeling_revive
 
 //Boosts the range of your next sting attack by 1
 /mob/proc/changeling_boost_range()
@@ -592,27 +599,22 @@ var/global/list/possible_changeling_IDs = list("Alpha","Beta","Gamma","Delta","E
 
 
 //Starts healing you every second for 10 seconds. Can be used whilst unconscious.
-/mob/proc/changeling_rapidregen()
+/mob/living/carbon/human/proc/changeling_rapidregen()
 	set category = "Changeling"
 	set name = "Rapid Regeneration (30)"
 	set desc = "Begins rapidly regenerating.  Does not effect stuns or chemicals."
 
 	var/datum/changeling/changeling = changeling_power(30,0,100,UNCONSCIOUS)
-	if(!changeling)	return 0
-	src.mind.changeling.chem_charges -= 30
+	if(!changeling)
+		return
+	if(changeling.rapidregen_active)
+		to_chat(src, SPAN_WARNING("We are already actively regenerating!"))
+		return
 
-	var/mob/living/carbon/human/C = src
-	spawn(0)
-		for(var/i = 0, i<10,i++)
-			if(C)
-				C.adjustBruteLoss(-10)
-				C.adjustToxLoss(-10)
-				C.adjustOxyLoss(-10)
-				C.adjustFireLoss(-10)
-				sleep(10)
-
-	src.verbs -= /mob/proc/changeling_rapidregen
-	spawn(5)	src.verbs += /mob/proc/changeling_rapidregen
+	changeling.rapidregen_active = TRUE
+	mind.changeling.chem_charges -= 30
+	new /datum/rapidregen(src)
+	
 	feedback_add_details("changeling_powers","RR")
 	return 1
 
@@ -1211,7 +1213,7 @@ var/list/datum/absorbed_dna/hivemind_bank = list()
 		if(src)
 			qdel(src)
 
-/obj/item/weapon/finger_lockpick/afterattack(var/atom/target, var/mob/living/user, proximity)
+/obj/item/weapon/finger_lockpick/afterattack(atom/target, mob/living/user, proximity)
 	if(!target)
 		return
 	if(!proximity)
@@ -1224,6 +1226,12 @@ var/list/datum/absorbed_dna/hivemind_bank = list()
 	if(ling_datum.chem_charges < 10)
 		to_chat(user, "<span class='warning'>We require more chemicals to do that.</span>")
 		return
+
+	if(world.time < ling_datum.FLP_last_time_used + 10 SECONDS)
+		to_chat(user, SPAN_WARNING("The finger lockpick is still recharging, we have to wait!"))
+		return
+	else
+		ling_datum.FLP_last_time_used = world.time
 
 	//Airlocks require an ugly block of code, but we don't want to just call emag_act(), since we don't want to break airlocks forever.
 	if(istype(target,/obj/machinery/door))
@@ -1464,6 +1472,7 @@ var/list/datum/absorbed_dna/hivemind_bank = list()
 	var/obj/item/organ/external/affecting = T.get_organ(src.zone_sel.selecting)
 	if(!affecting)
 		to_chat(src, "<span class='warning'>They are missing that body part!</span>")
+		return
 
 	changeling.isabsorbing = 1
 	for(var/stage = 1, stage<=3, stage++)
@@ -1477,7 +1486,7 @@ var/list/datum/absorbed_dna/hivemind_bank = list()
 				to_chat(src, "<span class='notice'>We stab [T] with the proboscis.</span>")
 				src.visible_message("<span class='danger'>[src] stabs [T] with the proboscis!</span>")
 				to_chat(T, "<span class='danger'>You feel a sharp stabbing pain!</span>")
-				affecting.take_damage(39, 0, DAM_SHARP, "large organic needle")
+				affecting.take_external_damage(39, 0, DAM_SHARP, "large organic needle")
 
 		feedback_add_details("changeling_powers","A[stage]")
 		if(!do_mob(src, T, 150))
@@ -1494,7 +1503,7 @@ var/list/datum/absorbed_dna/hivemind_bank = list()
 
 	changeling.isabsorbing = 0
 	var/datum/antagonist/changeling/a = new
-	a.add_antagonist(T.mind, ignore_role = 1, do_not_equip = 1)
+	a.create_antagonist(T.mind)
 
 	to_chat(T, "<span class='danger'>We have become!</span>") //So pretentious!
 	T.mind.changeling.geneticpoints = 7
@@ -1517,7 +1526,7 @@ var/list/datum/absorbed_dna/hivemind_bank = list()
 	for (var/obj/item/organ/external/E in detachable_limbs)
 		if (E.organ_tag == BP_R_HAND || E.organ_tag == BP_L_HAND || E.organ_tag == BP_R_FOOT || E.organ_tag == BP_L_FOOT || E.organ_tag == BP_CHEST || E.organ_tag == BP_GROIN || E.is_stump())
 			detachable_limbs -= E
-	changeling.isdetachingnow = TRUE		
+	changeling.isdetachingnow = TRUE
 	var/obj/item/organ/external/organ_to_remove = input(T, "Which organ do you want to detach?") as null|anything in detachable_limbs
 	if(!organ_to_remove)
 		changeling.isdetachingnow = FALSE
@@ -1532,7 +1541,7 @@ var/list/datum/absorbed_dna/hivemind_bank = list()
 	if(!do_after(src,10,can_move = 1,needhand = 0,incapacitation_flags = INCAPACITATION_NONE))
 		src.visible_message("<span class='notice'>\the [organ_to_remove] connecting back to [src].</span>", \
 					"<span class='danger'>We were interrupted.</span>")
-		changeling.isdetachingnow = FALSE			
+		changeling.isdetachingnow = FALSE
 		return 0
 	playsound(loc, 'sound/effects/bonebreak1.ogg', 100, 1)
 	T.mind.changeling.chem_charges -= 10
@@ -1555,8 +1564,8 @@ var/list/datum/absorbed_dna/hivemind_bank = list()
 	var/mob/living/carbon/human/H = T
 	if(istype(H))
 		H.regenerate_icons()
-		
-	changeling.isdetachingnow = FALSE	
+
+	changeling.isdetachingnow = FALSE
 
 
 /mob/proc/changeling_gib_self()
@@ -1738,7 +1747,7 @@ var/list/datum/absorbed_dna/hivemind_bank = list()
 	if(T)
 		T.move_biostructure()
 
-/mob/proc/changeling_transfer_mind(var/atom/A)
+/mob/proc/changeling_transfer_mind(atom/A)
 	var/obj/item/organ/internal/biostructure/BIO
 	if (istype(src,/mob/living/carbon/brain))
 		BIO = src.loc

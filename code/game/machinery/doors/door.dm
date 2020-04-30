@@ -28,8 +28,6 @@
 	var/hitsound = 'sound/effects/fighting/smash.ogg' //sound door makes when hit with a weapon
 	var/obj/item/stack/material/repairing
 	var/block_air_zones = 1 //If set, air zones cannot merge across the door even when it is opened.
-	var/close_door_at = 0 //When to automatically close the door, if possible
-
 	//Multi-tile doors
 	var/width = 1
 
@@ -38,7 +36,7 @@
 
 	atmos_canpass = CANPASS_PROC
 
-/obj/machinery/door/attack_generic(var/mob/user, var/damage)
+/obj/machinery/door/attack_generic(mob/user, damage)
 	if(damage >= 10)
 		visible_message("<span class='danger'>\The [user] smashes into \the [src]!</span>")
 		take_damage(damage)
@@ -75,14 +73,6 @@
 	set_density(0)
 	update_nearby_tiles()
 	. = ..()
-
-/obj/machinery/door/Process()
-	if(close_door_at && world.time >= close_door_at)
-		if(autoclose)
-			close_door_at = next_close_time()
-			close()
-		else
-			close_door_at = 0
 
 /obj/machinery/door/proc/can_open()
 	if(!density || operating)
@@ -147,7 +137,7 @@
 		else				do_animate("deny")
 	return
 
-/obj/machinery/door/bullet_act(var/obj/item/projectile/Proj)
+/obj/machinery/door/bullet_act(obj/item/projectile/Proj)
 	..()
 
 	var/damage = Proj.get_structure_damage()
@@ -171,7 +161,7 @@
 
 
 
-/obj/machinery/door/hitby(AM as mob|obj, var/speed=5)
+/obj/machinery/door/hitby(AM as mob|obj, speed=5)
 
 	..()
 	visible_message("<span class='danger'>[src.name] was hit by [AM].</span>")
@@ -285,7 +275,7 @@
 		do_animate("deny")
 	return
 
-/obj/machinery/door/emag_act(var/remaining_charges)
+/obj/machinery/door/emag_act(remaining_charges)
 	if(density && operable())
 		do_animate("spark")
 		sleep(6)
@@ -293,7 +283,7 @@
 		operating = -1
 		return 1
 
-/obj/machinery/door/proc/take_damage(var/damage)
+/obj/machinery/door/proc/take_damage(damage)
 	var/initialhealth = src.health
 	src.health = max(0, src.health - damage)
 	if(src.health <= 0 && initialhealth > 0)
@@ -373,7 +363,7 @@
 	return
 
 
-/obj/machinery/door/proc/open(var/forced = 0)
+/obj/machinery/door/proc/open(forced = 0)
 	if(!can_open(forced))
 		return
 	operating = 1
@@ -392,19 +382,20 @@
 	operating = 0
 
 	if(autoclose)
-		close_door_at = next_close_time()
+		addtimer(CALLBACK(src, .close), next_close_time(), TIMER_UNIQUE|TIMER_OVERRIDE)
 
 	return 1
 
 /obj/machinery/door/proc/next_close_time()
-	return world.time + (normalspeed ? 150 : 5)
+	return normalspeed ? 150 : 5
 
-/obj/machinery/door/proc/close(var/forced = 0)
+/obj/machinery/door/proc/close(forced = 0)
 	if(!can_close(forced))
+		if(autoclose)
+			addtimer(CALLBACK(src, .close), next_close_time(), TIMER_UNIQUE|TIMER_OVERRIDE)
 		return
 	operating = 1
 
-	close_door_at = 0
 	do_animate("closing")
 	sleep(3)
 	src.set_density(1)
@@ -438,7 +429,7 @@
 		SSair.mark_for_update(turf)
 	return 1
 
-/obj/machinery/door/proc/update_heat_protection(var/turf/simulated/source)
+/obj/machinery/door/proc/update_heat_protection(turf/simulated/source)
 	if(istype(source))
 		if(src.density && (src.opacity || src.heat_proof))
 			source.thermal_conductivity = DOOR_HEAT_TRANSFER_COEFFICIENT
@@ -461,7 +452,7 @@
 		deconstruct(null, TRUE)
 
 
-/obj/machinery/door/proc/deconstruct(mob/user, var/moved = FALSE)
+/obj/machinery/door/proc/deconstruct(mob/user, moved = FALSE)
 	return null
 
 /obj/machinery/door/morgue

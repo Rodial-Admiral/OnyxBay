@@ -1402,16 +1402,17 @@
 		else
 			health_description = "This mob type has no health to speak of."
 
-		//Gener
+		//Gender
 		switch(M.gender)
 			if(MALE,FEMALE)	gender_description = "[M.gender]"
 			else			gender_description = "<font color='red'><b>[M.gender]</b></font>"
 
 		to_chat(src.owner, "<b>Info about [M.name]:</b> ")
-		to_chat(src.owner, "Mob type = [M.type]; Gender = [gender_description] Damage = [health_description]")
+		to_chat(src.owner, "Mob type = [M.type]; Gender = [gender_description]; Damage = [health_description];")
 		to_chat(src.owner, "Name = <b>[M.name]</b>; Real_name = [M.real_name]; Mind_name = [M.mind?"[M.mind.name]":""]; Key = <b>[M.key]</b>;")
 		to_chat(src.owner, "Location = [location_description];")
 		to_chat(src.owner, "[special_role_description]")
+		to_chat(src.owner, "IP address = [M.lastKnownIP]; CID = [M.computer_id];")
 		to_chat(src.owner, "(<a href='?src=\ref[usr];priv_msg=\ref[M]'>PM</a>) (<A HREF='?src=\ref[src];adminplayeropts=\ref[M]'>PP</A>) (<A HREF='?_src_=vars;Vars=\ref[M]'>VV</A>) (<A HREF='?src=\ref[src];subtlemessage=\ref[M]'>SM</A>) ([admin_jump_link(M, src)]) (<A HREF='?src=\ref[src];secretsadmin=check_antagonist'>CA</A>)")
 
 	else if(href_list["adminspawncookie"])
@@ -2045,26 +2046,26 @@ mob/living/carbon/human/can_centcom_reply()
 mob/living/silicon/ai/can_centcom_reply()
 	return silicon_radio != null && !check_unable(2)
 
-/datum/proc/extra_admin_link(var/prefix, var/sufix, var/short_links)
+/datum/proc/extra_admin_link(prefix, sufix, short_links)
 	return list()
 
-/atom/movable/extra_admin_link(var/source, var/prefix, var/sufix, var/short_links)
+/atom/movable/extra_admin_link(source, prefix, sufix, short_links)
 	return list("<A HREF='?[source];adminplayerobservefollow=\ref[src]'>[prefix][short_links ? "J" : "JMP"][sufix]</A>")
 
-/client/extra_admin_link(source, var/prefix, var/sufix, var/short_links)
+/client/extra_admin_link(source, prefix, sufix, short_links)
 	return mob.extra_admin_link(source, prefix, sufix, short_links)
 
-/mob/extra_admin_link(var/source, var/prefix, var/sufix, var/short_links)
+/mob/extra_admin_link(source, prefix, sufix, short_links)
 	. = ..()
 	if(client && eyeobj)
 		. += "<A HREF='?[source];adminplayerobservefollow=\ref[eyeobj]'>[prefix][short_links ? "E" : "EYE"][sufix]</A>"
 
-/mob/observer/ghost/extra_admin_link(var/source, var/prefix, var/sufix, var/short_links)
+/mob/observer/ghost/extra_admin_link(source, prefix, sufix, short_links)
 	. = ..()
 	if(mind && (mind.current && !isghost(mind.current)))
 		. += "<A HREF='?[source];adminplayerobservefollow=\ref[mind.current]'>[prefix][short_links ? "B" : "BDY"][sufix]</A>"
 
-/proc/admin_jump_link(var/atom/target, var/source, var/delimiter = "|", var/prefix, var/sufix, var/short_links)
+/proc/admin_jump_link(atom/target, source, delimiter = "|", prefix, sufix, short_links)
 	if(!target) return
 	// The way admin jump links handle their src is weirdly inconsistent...
 	if(istype(source, /datum/admins))
@@ -2073,13 +2074,13 @@ mob/living/silicon/ai/can_centcom_reply()
 		source = "_src_=holder"
 	return jointext(target.extra_admin_link(source, prefix, sufix, short_links), delimiter)
 
-/datum/proc/get_admin_jump_link(var/atom/target)
+/datum/proc/get_admin_jump_link(atom/target)
 	return
 
-/mob/get_admin_jump_link(var/atom/target, var/delimiter, var/prefix, var/sufix)
+/mob/get_admin_jump_link(atom/target, delimiter, prefix, sufix)
 	return client && client.get_admin_jump_link(target, delimiter, prefix, sufix)
 
-/client/get_admin_jump_link(var/atom/target, var/delimiter, var/prefix, var/sufix)
+/client/get_admin_jump_link(atom/target, delimiter, prefix, sufix)
 	if(holder)
 		var/short_links = get_preference_value(/datum/client_preference/ghost_follow_link_length) == GLOB.PREF_SHORT
 		return admin_jump_link(target, src, delimiter, prefix, sufix, short_links)

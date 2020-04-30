@@ -82,7 +82,7 @@
 	damage = 100 //badmins be badmins I don't give a fuck
 	armor_penetration = 100
 
-/obj/item/projectile/beam/pulse/destroy/on_hit(var/atom/target, var/blocked = 0)
+/obj/item/projectile/beam/pulse/destroy/on_hit(atom/target, blocked = 0)
 	if(isturf(target))
 		target.ex_act(2)
 	..()
@@ -110,7 +110,7 @@
 	tracer_type = /obj/effect/projectile/laser/blue/tracer
 	impact_type = /obj/effect/projectile/laser/blue/impact
 
-/obj/item/projectile/beam/lastertag/blue/on_hit(var/atom/target, var/blocked = 0)
+/obj/item/projectile/beam/lastertag/blue/on_hit(atom/target, blocked = 0)
 	if(istype(target, /mob/living/carbon/human))
 		var/mob/living/carbon/human/M = target
 		if(istype(M.wear_suit, /obj/item/clothing/suit/redtag))
@@ -126,7 +126,7 @@
 	damage_type = BURN
 	check_armour = "laser"
 
-/obj/item/projectile/beam/lastertag/red/on_hit(var/atom/target, var/blocked = 0)
+/obj/item/projectile/beam/lastertag/red/on_hit(atom/target, blocked = 0)
 	if(istype(target, /mob/living/carbon/human))
 		var/mob/living/carbon/human/M = target
 		if(istype(M.wear_suit, /obj/item/clothing/suit/bluetag))
@@ -145,7 +145,7 @@
 	tracer_type = /obj/effect/projectile/laser/omni/tracer
 	impact_type = /obj/effect/projectile/laser/omni/impact
 
-/obj/item/projectile/beam/lastertag/omni/on_hit(var/atom/target, var/blocked = 0)
+/obj/item/projectile/beam/lastertag/omni/on_hit(atom/target, blocked = 0)
 	if(istype(target, /mob/living/carbon/human))
 		var/mob/living/carbon/human/M = target
 		if((istype(M.wear_suit, /obj/item/clothing/suit/bluetag))||(istype(M.wear_suit, /obj/item/clothing/suit/redtag)))
@@ -200,7 +200,8 @@
 	name = "plasma arc"
 	icon_state = "omnilaser"
 	fire_sound = 'sound/effects/weapons/energy/fire3.ogg'
-	damage = 15
+	armor_penetration = 10
+	damage = 30
 	sharp = 1
 	edge = 1
 	damage_type = BURN
@@ -212,12 +213,25 @@
 	tracer_type = /obj/effect/projectile/trilaser/tracer
 	impact_type = /obj/effect/projectile/trilaser/impact
 
-/obj/item/projectile/beam/plasmacutter/on_impact(var/atom/A)
+/obj/item/projectile/beam/plasmacutter/on_impact(atom/A)
 	if(istype(A, /turf/simulated/mineral))
 		var/turf/simulated/mineral/M = A
-		if(prob(33))
+		if(prob(99))
 			M.GetDrilled(1)
 			return
 		else
 			M.emitter_blasts_taken += 2
+	if(istype(A, /mob/living/carbon/human))
+		var/mob/living/carbon/human/H = A
+		if(!H.wearing_rig)
+			var/obj/item/organ/external/LIMP = H.get_organ(src.def_zone)
+			var/block = H.run_armor_check(src.def_zone, src.check_armour, src.armor_penetration)
+			var/chance = 33
+			if(block > 0)
+				chance = round((100 - block) / 3)
+			if(prob(chance))
+				if (istype(LIMP, /obj/item/organ/external/chest) ||	istype(LIMP, /obj/item/organ/external/groin))
+					LIMP.take_external_damage(30, used_weapon = "Plasma arc")
+				else
+					LIMP.droplimb(0, DROPLIMB_EDGE)
 	. = ..()
