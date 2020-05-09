@@ -423,16 +423,16 @@
 		'html/images/loading.gif',
 		'html/images/ntlogo.png',
 		'html/images/talisman.png',
-		'UI/templates/appearance_changer_WW13.tmpl',
-		'UI/templates/chem_disp_WW13.tmpl',
-		'UI/templates/freezer_WW13.tmpl',
-		'UI/templates/layout_basic_WW13.tmpl',
-		'UI/templates/layout_default_WW13.tmpl',
-		'UI/templates/nav_WW13.tmpl',
-		'UI/templates/news_browser_WW13.tmpl',
-		'UI/templates/radio_WW13.tmpl',
-		'UI/templates/smartfridge_WW13.tmpl',
-		'UI/templates/vending_machine_WW13.tmpl'
+		'nano/templates/appearance_changer_WW13.tmpl',
+		'nano/templates/chem_disp_WW13.tmpl',
+		'nano/templates/freezer_WW13.tmpl',
+		'nano/templates/layout_basic_WW13.tmpl',
+		'nano/templates/layout_default_WW13.tmpl',
+		'nano/templates/nav_WW13.tmpl',
+		'nano/templates/news_browser_WW13.tmpl',
+		'nano/templates/radio_WW13.tmpl',
+		'nano/templates/smartfridge_WW13.tmpl',
+		'nano/templates/vending_machine_WW13.tmpl'
 		)
 
 	spawn (10) //removing this spawn causes all clients to not get verbs.

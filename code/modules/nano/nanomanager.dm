@@ -18,12 +18,12 @@
   */
 /datum/nanomanager/New()
 	var/list/nano_asset_dirs = list(\
-		"UI/css/",\
-		"UI/images/",\
-		"UI/images/modular_computers/",\
-		"UI/images/status_icons/",\
-		"UI/js/",\
-		"UI/templates/"\
+		"nano/css/",\
+		"nano/images/",\
+		"nano/images/modular_computers/",\
+		"nano/images/status_icons/",\
+		"nano/js/",\
+		"nano/templates/"\
 	)
 
 	var/list/filenames = null
