@@ -1,96 +1,83 @@
 /obj/item/projectile/bullet/pellet/fragment
-	damage = 7
-	range_step = 2 //controls damage falloff with distance. projectiles lose a "pellet" each time they travel this distance. Can be a non-integer.
+	damage = 18
+	range_step = 2
 
-	base_spread = 0 //causes it to be treated as a shrapnel explosion instead of cone
-	spread_step = 20
+	base_spread = FALSE //causes it to be treated as a shrapnel explosion instead of cone
+	spread_step = 12
 
-	silenced = 1
-	fire_sound = null
-	no_attack_log = 1
+	silenced = TRUE //embedding messages are still produced so it's kind of weird when enabled.
+	no_attack_log = TRUE
 	muzzle_type = null
 
+	embed = TRUE
+
 /obj/item/projectile/bullet/pellet/fragment/strong
-	damage = 15
+	damage = 24
 
-/obj/item/weapon/grenade/frag
+/obj/item/weapon/grenade/explosive
 	name = "fragmentation grenade"
-	desc = "A military fragmentation grenade, designed to explode in a deadly shower of fragments, while avoiding massive structural damage."
+	desc = "A fragmentation grenade, optimized for harming personnel without causing massive structural damage."
 	icon_state = "frggrenade"
-	item_state = "frggrenade"
+	item_state = "grenade"
+	loadable = TRUE
 
-	var/list/fragment_types = list(/obj/item/projectile/bullet/pellet/fragment = 1)
-	var/num_fragments = 72  //total number of fragments produced by the grenade
+	var/fragment_type = /obj/item/projectile/bullet/pellet/fragment
+	var/num_fragments = 50  //total number of fragments produced by the grenade
+	var/fragment_damage = 15
+	var/damage_step = 2      //projectiles lose a fragment each time they travel this distance. Can be a non-integer.
 	var/explosion_size = 2   //size of the center explosion
+	var/big_bomb = FALSE
 
 	//The radius of the circle used to launch projectiles. Lower values mean less projectiles are used but if set too low gaps may appear in the spread pattern
-	var/spread_range = 7 //leave as is, for some reason setting this higher makes the spread pattern have gaps close to the epicenter
+	var/spread_range = 7
 
-/obj/item/weapon/grenade/frag/detonate()
-	..()
+/obj/item/weapon/grenade/explosive/prime()
+	if (active)
+		set waitfor = FALSE
+		..()
 
-	var/turf/O = get_turf(src)
-	if(!O) return
+		var/turf/T = get_turf(src)
+		if (!T) return
 
-	if(explosion_size)
-		on_explosion(O)
+		if (explosion_size)
+			spawn (2)
+				on_explosion(T)
 
-	src.fragmentate(O, num_fragments, spread_range, fragment_types)
+		if (!ismob(loc))
 
-	qdel(src)
+			var/list/target_turfs = getcircle(T, spread_range)
+			var/fragments_per_projectile = round(num_fragments/target_turfs.len)
 
+			for (var/turf/TT in target_turfs)
+				var/obj/item/projectile/bullet/pellet/fragment/P = new fragment_type(T)
+				P.damage = fragment_damage
+				P.pellets = fragments_per_projectile
+				P.range_step = damage_step
+				P.shot_from = name
+				P.launch_fragment(TT)
 
-/obj/proc/fragmentate(var/turf/T=get_turf(src), fragment_number = 30, spreading_range = 5, list/fragtypes=list(/obj/item/projectile/bullet/pellet/fragment/))
-	set waitfor = 0
-	var/list/target_turfs = getcircle(T, spreading_range)
-	var/fragments_per_projectile = round(fragment_number/target_turfs.len)
+				// any mob on the source turf, lying or not, absorbs 100% of shrapnel now
+				for (var/mob/living/L in T)
+					P.attack_mob(L, 0, 0)
 
-	for(var/turf/O in target_turfs)
-		sleep(0)
-		var/fragment_type = pickweight(fragtypes)
-		var/obj/item/projectile/bullet/pellet/fragment/P = new fragment_type(T)
-		P.pellets = fragments_per_projectile
-		P.shot_from = src.name
+		spawn (5)
+			qdel(src)
 
-		P.launch(O)
+/obj/item/weapon/grenade/explosive/proc/on_explosion(var/turf/T)
+	if (explosion_size)
+		if (!big_bomb)
+			explosion(T, 1, 1, 2, round(explosion_size/2), FALSE)
+		else
+			explosion(T, 3, 3, 4, round(explosion_size), FALSE)
 
-		//Make sure to hit any mobs in the source turf
-		for(var/mob/living/M in T)
-			//lying on a frag grenade while the grenade is on the ground causes you to absorb most of the shrapnel.
-			//you will most likely be dead, but others nearby will be spared the fragments that hit you instead.
-			if(M.lying && isturf(src.loc))
-				P.attack_mob(M, 0, 5)
-			else if(!M.lying && src.loc != get_turf(src)) //if it's not on the turf, it must be in the mob!
-				P.attack_mob(M, 0, 25) //you're holding a grenade, dude!
-			else
-				P.attack_mob(M, 0, 100) //otherwise, allow a decent amount of fragments to pass
-
-
-
-/obj/item/weapon/grenade/frag/proc/on_explosion(turf/O)
-	if(explosion_size)
-		explosion(O, -1, -1, explosion_size, round(explosion_size/2), 0)
-
-/obj/item/weapon/grenade/frag/shell
+/obj/item/weapon/grenade/explosive/frag
 	name = "fragmentation grenade"
-	desc = "A light fragmentation grenade, designed to be fired from a launcher. It can still be activated and thrown by hand if necessary."
-	icon_state = "fragshell"
-
-	num_fragments = 50 //less powerful than a regular frag grenade
-
-/obj/item/weapon/grenade/frag/high_yield
-	name = "fragmentation bomb"
-	desc = "Larger and heavier than a standard fragmentation grenade, this device is extremely dangerous. It cannot be thrown as far because of its weight."
+	desc = "A military fragmentation grenade, designed to explode in a deadly shower of fragments."
 	icon_state = "frag"
 
-	w_class = ITEM_SIZE_NORMAL
-	throw_speed = 3
-	throw_range = 5 //heavy, can't be thrown as far
-
-	fragment_types = list(/obj/item/projectile/bullet/pellet/fragment=1,/obj/item/projectile/bullet/pellet/fragment/strong=4)
+	fragment_type = /obj/item/projectile/bullet/pellet/fragment/strong
 	num_fragments = 200  //total number of fragments produced by the grenade
-	explosion_size = 3
 
-/obj/item/weapon/grenade/frag/high_yield/on_explosion(turf/O)
-	if(explosion_size)
-		explosion(O, -1, round(explosion_size/2), explosion_size, round(explosion_size/2), 0) //has a chance to blow a hole in the floor
+/obj/item/weapon/grenade/explosive/frag/on_explosion(var/turf/O)
+	if (explosion_size)
+		explosion(O, 1, round(explosion_size/2), explosion_size, round(explosion_size/2), FALSE)

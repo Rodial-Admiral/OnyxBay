@@ -5,16 +5,19 @@
 	icon_state = "emp"
 	item_state = "emp"
 	det_time = 20
-	origin_tech = list(TECH_BLUESPACE = 4, TECH_MATERIAL = 4)
+//	origin_tech = list(TECH_BLUESPACE = 4, TECH_MATERIAL = 4)
 
-/obj/item/weapon/grenade/anti_photon/detonate()
+/obj/item/weapon/grenade/anti_photon/prime()
 	playsound(src.loc, 'sound/effects/phasein.ogg', 50, 1, 5)
-	set_light(10, -12, "#ffffff")
-	addtimer(CALLBACK(src, .proc/finish), rand(20 SECONDS, 29 SECONDS))
+	set_light(10, -10, "#FFFFFF")
 
-/obj/item/weapon/grenade/anti_photon/proc/finish()
-	set_light(10, 10, "#[num2hex(rand(64,255))][num2hex(rand(64,255))][num2hex(rand(64,255))]")
-	playsound(loc, 'sound/effects/bang.ogg', 50, 1, 5)
-	sleep(1 SECOND)
-	..()
-	qdel(src)
+	var/extra_delay = rand(0,90)
+
+	spawn(extra_delay)
+		spawn(200)
+			if(prob(10+extra_delay))
+				set_light(10, 10, "#[num2hex(rand(64,255))][num2hex(rand(64,255))][num2hex(rand(64,255))]")
+		spawn(210)
+			..()
+			playsound(src.loc, 'sound/effects/bang.ogg', 50, 1, 5)
+			qdel(src)

@@ -1,514 +1,808 @@
 var/global/datum/controller/occupations/job_master
 
-#define GET_RANDOM_JOB 0
-#define BE_ASSISTANT 1
-#define RETURN_TO_LOBBY 2
+#define RETURN_TO_LOBBY 0
+#define MEMBERS_PER_SQUAD 6
+#define LEADERS_PER_SQUAD 1
+#define SL_LIMIT 4
+
+/proc/setup_autobalance(var/announce = TRUE)
+
+	spawn (0)
+		if (job_master)
+			job_master.toggle_roundstart_autobalance(0, announce)
+
+	var/list/faction_organized_occupations_separate_lists = list()
+	for (var/datum/job/J in job_master.occupations)
+		var/Jflag = J.base_type_flag()
+		if (!faction_organized_occupations_separate_lists.Find(Jflag))
+			faction_organized_occupations_separate_lists[Jflag] = list()
+		faction_organized_occupations_separate_lists[Jflag] += J
+	if (!map)
+		job_master.faction_organized_occupations |= faction_organized_occupations_separate_lists[GERMAN]
+		job_master.faction_organized_occupations |= faction_organized_occupations_separate_lists[SOVIET]
+		job_master.faction_organized_occupations |= faction_organized_occupations_separate_lists[ITALIAN]
+		job_master.faction_organized_occupations |= faction_organized_occupations_separate_lists[UKRAINIAN]
+		job_master.faction_organized_occupations |= faction_organized_occupations_separate_lists[CIVILIAN]
+		job_master.faction_organized_occupations |= faction_organized_occupations_separate_lists[PARTISAN]
+		job_master.faction_organized_occupations |= faction_organized_occupations_separate_lists[POLISH_INSURGENTS]
+		job_master.faction_organized_occupations |= faction_organized_occupations_separate_lists[JAPAN]
+		job_master.faction_organized_occupations |= faction_organized_occupations_separate_lists[USA]
+	else
+		for (var/faction in map.faction_organization)
+			job_master.faction_organized_occupations |= faction_organized_occupations_separate_lists[faction]
 
 /datum/controller/occupations
 		//List of all jobs
 	var/list/occupations = list()
-		//Associative list of all jobs, by type
-	var/list/occupations_by_type
-	//Associative list of all jobs, by title
-	var/list/occupations_by_title
+		//List of all jobs ordered by faction: German, Soviet, Italian, Ukrainian, Civilian, Partisan
+	var/list/faction_organized_occupations = list()
 		//Players who need jobs
 	var/list/unassigned = list()
 		//Debug info
 	var/list/job_debug = list()
-
-
-	proc/SetupOccupations(var/setup_titles = 0)
-		occupations = list()
-		occupations_by_type = list()
-		occupations_by_title = list()
-		var/list/all_jobs = list(/datum/job/assistant) | GLOB.using_map.allowed_jobs
-		if(!all_jobs.len)
-			log_error("<span class='warning'>Error setting up jobs, no job datums found!</span>")
-			return 0
-		for(var/J in all_jobs)
-			var/datum/job/job = decls_repository.get_decl(J)
-			if(!job)	continue
-			occupations += job
-			occupations_by_type[job.type] = job
-			occupations_by_title[job.title] = job
-			job.current_positions = 0
-			for(var/alt_title in job.alt_titles)
-				occupations_by_title[alt_title] = job
-			if(!setup_titles) continue
-			if(job.department_flag & COM)
-				GLOB.command_positions |= job.title
-			if(job.department_flag & SPT)
-				GLOB.support_positions |= job.title
-			if(job.department_flag & SEC)
-				GLOB.security_positions |= job.title
-			if(job.department_flag & ENG)
-				GLOB.engineering_positions += job.title
-			if(job.department_flag & MED)
-				GLOB.medical_positions |= job.title
-			if(job.department_flag & SCI)
-				GLOB.science_positions |= job.title
-			if(job.department_flag & EXP)
-				GLOB.exploration_positions |= job.title
-			if(job.department_flag & SUP)
-				GLOB.supply_positions |= job.title
-			if(job.department_flag & SRV)
-				GLOB.service_positions |= job.title
-			if(job.department_flag & CIV)
-				GLOB.civilian_positions |= job.title
-			if(job.department_flag & MSC)
-				GLOB.nonhuman_positions |= job.title
-
-		return 1
-
-
-	proc/Debug(var/text)
-		if(!Debug2)	return 0
-		job_debug.Add(text)
-		return 1
-
-
-	proc/GetJob(var/rank)
-		if(!rank)	return null
-		for(var/datum/job/J in occupations)
-			if(!J)	continue
-			if(J.title == rank)	return J
-		return null
-
-	proc/ShouldCreateRecords(var/rank)
-		if(!rank) return 0
-		var/datum/job/job = GetJob(rank)
-		if(!job) return 0
-		return job.create_record
-
-	proc/GetPlayerAltTitle(mob/new_player/player, rank)
-		return player.client.prefs.GetPlayerAltTitle(GetJob(rank))
-
-	proc/CheckGeneralJoinBlockers(var/mob/new_player/joining, var/datum/job/job)
-		if(!istype(joining) || !joining.client || !joining.client.prefs)
-			return FALSE
-		if(!istype(job))
-			log_debug("Job assignment error for [joining] - job does not exist or is of the incorrect type.")
-			return FALSE
-		if(!job.is_position_available())
-			to_chat(joining, "<span class='warning'>Unfortunately, that job is no longer available.</span>")
-			return FALSE
-		if(!config.enter_allowed)
-			to_chat(joining, "<span class='warning'>There is an administrative lock on entering the game!</span>")
-			return FALSE
-		if(SSticker.mode && SSticker.mode.explosion_in_progress)
-			to_chat(joining, "<span class='warning'>The [station_name()] is currently exploding. Joining would go poorly.</span>")
-			return FALSE
-		return TRUE
-
-	proc/CheckLatejoinBlockers(mob/new_player/joining, datum/job/job)
-		if(!CheckGeneralJoinBlockers(joining, job))
-			return FALSE
-		if(job.minimum_character_age && (joining.client.prefs.age < job.minimum_character_age))
-			to_chat(joining, SPAN_WARNING("Your character's in-game age is too low for this job."))
-			return FALSE
-		if(job.faction_restricted && (joining.client.prefs.faction != GLOB.using_map.company_name || (joining.client.prefs.nanotrasen_relation in COMPANY_OPPOSING)))
-			to_chat(joining, SPAN_WARNING("Your characte must be loyal to [GLOB.using_map.company_name]."))
-			return FALSE
-		if(!job.player_old_enough(joining.client))
-			to_chat(joining, SPAN_WARNING("Your player age (days since first seen on the server) is too low for this job."))
-			return FALSE
-		if(GAME_STATE != RUNLEVEL_GAME)
-			to_chat(joining, SPAN_WARNING("The round is either not ready, or has already finished..."))
-			return FALSE
-		return TRUE
-
-	proc/CheckUnsafeSpawn(var/mob/living/spawner, var/turf/spawn_turf)
-		var/radlevel = SSradiation.get_rads_at_turf(spawn_turf)
-		var/airstatus = IsTurfAtmosUnsafe(spawn_turf)
-		if(airstatus || radlevel > 0)
-			var/reply = alert(spawner, "Warning. Your selected spawn location seems to have unfavorable conditions. \
-			You may die shortly after spawning. \
-			Spawn anyway? More information: [airstatus] Radiation: [radlevel] Bq", "Atmosphere warning", "Abort", "Spawn anyway")
-			if(reply == "Abort")
-				return FALSE
-			else
-				// Let the staff know, in case the person complains about dying due to this later. They've been warned.
-				log_and_message_admins("User [spawner] spawned at spawn point with dangerous atmosphere.")
-		return TRUE
-
-	proc/AssignRole(mob/new_player/player, rank, latejoin = 0)
-		Debug("Running AR, Player: [player], Rank: [rank], LJ: [latejoin]")
-		if(player && player.mind && rank)
-			var/datum/job/job = GetJob(rank)
-			if(!job)
-				return FALSE
-			if(job.minimum_character_age && (player.client.prefs.age < job.minimum_character_age))
-				return FALSE
-			if(job.faction_restricted && (player.client.prefs.faction != GLOB.using_map.company_name || (player.client.prefs.nanotrasen_relation in COMPANY_OPPOSING)))
-				return FALSE
-			if(jobban_isbanned(player, rank))
-				return FALSE
-			if(!job.player_old_enough(player.client))
-				return FALSE
-			if(job.is_restricted(player.client.prefs))
-				return FALSE
-
-			var/position_limit = job.total_positions
-			if(!latejoin)
-				position_limit = job.spawn_positions
-			if((job.current_positions < position_limit) || position_limit == -1)
-				Debug("Player: [player] is now Rank: [rank], JCP:[job.current_positions], JPL:[position_limit]")
-				player.mind.assigned_role = rank
-				player.mind.role_alt_title = GetPlayerAltTitle(player, rank)
-				unassigned -= player
-				job.current_positions++
-				return TRUE
-		Debug("AR has failed, Player: [player], Rank: [rank]")
-		return FALSE
-
-	proc/FreeRole(var/rank)	//making additional slot on the fly
-		var/datum/job/job = GetJob(rank)
-		if(job && job.current_positions >= job.total_positions && job.total_positions != -1)
-			job.total_positions++
-			return 1
-		return 0
-
-	proc/FindOccupationCandidates(datum/job/job, level, flag)
-		Debug("Running FOC, Job: [job], Level: [level], Flag: [flag]")
-		var/list/candidates = list()
-		for(var/mob/new_player/player in unassigned)
-			if(jobban_isbanned(player, job.title))
-				Debug("FOC isbanned failed, Player: [player]")
-				continue
-			if(!job.player_old_enough(player.client))
-				Debug("FOC player not old enough, Player: [player]")
-				continue
-			if(job.minimum_character_age && (player.client.prefs.age < job.minimum_character_age))
-				Debug("FOC character not old enough, Player: [player]")
-				continue
-			if(job.faction_restricted && (player.client.prefs.faction != GLOB.using_map.company_name || (player.client.prefs.nanotrasen_relation in COMPANY_OPPOSING)))
-				Debug("FOC character is not loyal to [GLOB.using_map.company_name]")
-				continue
-			if(flag && !(flag in player.client.prefs.be_special_role))
-				Debug("FOC flag failed, Player: [player], Flag: [flag], ")
-				continue
-			if(player.client.prefs.CorrectLevel(job,level))
-				Debug("FOC pass, Player: [player], Level:[level]")
-				candidates += player
-		return candidates
-
-	proc/GiveRandomJob(var/mob/new_player/player)
-		Debug("GRJ Giving random job, Player: [player]")
-		for(var/datum/job/job in shuffle(occupations))
-			if(!job)
-				continue
-
-			if(job.minimum_character_age && (player.client.prefs.age < job.minimum_character_age))
-				continue
-			
-			if(job.faction_restricted && (player.client.prefs.faction != GLOB.using_map.company_name || (player.client.prefs.nanotrasen_relation in COMPANY_OPPOSING)))
-				continue
-
-			if(istype(job, GetJob("Assistant"))) // We don't want to give him assistant, that's boring!
-				continue
-
-			if(job.is_restricted(player.client.prefs))
-				continue
-
-			if(job.title in GLOB.command_positions) //If you want a command position, select it!
-				continue
-
-			if(jobban_isbanned(player, job.title))
-				Debug("GRJ isbanned failed, Player: [player], Job: [job.title]")
-				continue
-
-			if(!job.player_old_enough(player.client))
-				Debug("GRJ player not old enough, Player: [player]")
-				continue
-
-			if((job.current_positions < job.spawn_positions) || job.spawn_positions == -1)
-				Debug("GRJ Random job given, Player: [player], Job: [job]")
-				AssignRole(player, job.title)
-				unassigned -= player
-				break
-
-	proc/ResetOccupations()
-		for(var/mob/new_player/player in GLOB.player_list)
-			if(player && player.mind)
-				player.mind.assigned_role = null
-				player.mind.special_role = null
-		SetupOccupations()
-		unassigned = list()
-		return
-
-
-	///This proc is called before the level loop of DivideOccupations() and will try to select a head, ignoring ALL non-head preferences for every level until it locates a head or runs out of levels to check
-	proc/FillHeadPosition()
-		for(var/level = 1 to 3)
-			for(var/command_position in GLOB.command_positions)
-				var/datum/job/job = GetJob(command_position)
-				if(!job)	continue
-				var/list/candidates = FindOccupationCandidates(job, level)
-				if(!candidates.len)	continue
-
-				// Build a weighted list, weight by age.
-				var/list/weightedCandidates = list()
-				for(var/mob/V in candidates)
-					// Log-out during round-start? What a bad boy, no head position for you!
-					if(!V.client) continue
-					var/age = V.client.prefs.age
-
-					if(age < job.minimum_character_age) // Nope.
-						continue
-
-					switch(age)
-						if(job.minimum_character_age to (job.minimum_character_age+10))
-							weightedCandidates[V] = 3 // Still a bit young.
-						if((job.minimum_character_age+10) to (job.ideal_character_age-10))
-							weightedCandidates[V] = 6 // Better.
-						if((job.ideal_character_age-10) to (job.ideal_character_age+10))
-							weightedCandidates[V] = 10 // Great.
-						if((job.ideal_character_age+10) to (job.ideal_character_age+20))
-							weightedCandidates[V] = 6 // Still good.
-						if((job.ideal_character_age+20) to INFINITY)
-							weightedCandidates[V] = 3 // Geezer.
-						else
-							// If there's ABSOLUTELY NOBODY ELSE
-							if(candidates.len == 1) weightedCandidates[V] = 1
-
-
-				var/mob/new_player/candidate = pickweight(weightedCandidates)
-				if(AssignRole(candidate, command_position))
-					return 1
-		return 0
-
-
-	///This proc is called at the start of the level loop of DivideOccupations() and will cause head jobs to be checked before any other jobs of the same level
-	proc/CheckHeadPositions(var/level)
-		for(var/command_position in GLOB.command_positions)
-			var/datum/job/job = GetJob(command_position)
-			if(!job)	continue
-			var/list/candidates = FindOccupationCandidates(job, level)
-			if(!candidates.len)	continue
-			var/mob/new_player/candidate = pick(candidates)
-			AssignRole(candidate, command_position)
-		return
-
-
-/** Proc DivideOccupations
- *  fills var "assigned_role" for all ready players.
- *  This proc must not have any side effect besides of modifying "assigned_role".
- **/
-	proc/DivideOccupations(datum/game_mode/mode)
-		//Setup new player list and get the jobs list
-		Debug("Running DO")
-		SetupOccupations()
-
-		if(GLOB.triai)
-			for(var/datum/job/A in occupations)
-				if(A.title == "AI")
-					A.spawn_positions = 3
-					break
-
-		//Get the players who are ready
-		for(var/mob/new_player/player in GLOB.player_list)
-			if(player.ready && player.mind && !player.mind.assigned_role)
-				unassigned += player
-
-		Debug("DO, Len: [unassigned.len]")
-		if(unassigned.len == 0)	return 0
-
-		//Shuffle players and jobs
-		unassigned = shuffle(unassigned)
-
-		HandleFeedbackGathering()
-
-		//People who wants to be assistants, sure, go on.
-		Debug("DO, Running Assistant Check 1")
-		var/datum/job/assist = new DEFAULT_JOB_TYPE ()
-		var/list/assistant_candidates = FindOccupationCandidates(assist, 3)
-		Debug("AC1, Candidates: [assistant_candidates.len]")
-		for(var/mob/new_player/player in assistant_candidates)
-			Debug("AC1 pass, Player: [player]")
-			AssignRole(player, "Assistant")
-			assistant_candidates -= player
-		Debug("DO, AC1 end")
-
-		//Select one head
-		Debug("DO, Running Head Check")
-		FillHeadPosition()
-		Debug("DO, Head Check end")
-
-		//Other jobs are now checked
-		Debug("DO, Running Standard Check")
-
-
-		// New job giving system by Donkie
-		// This will cause lots of more loops, but since it's only done once it shouldn't really matter much at all.
-		// Hopefully this will add more randomness and fairness to job giving.
-
-		// Loop through all levels from high to low
-		var/list/shuffledoccupations = shuffle(occupations)
-		for(var/level = 1 to 3)
-			//Check the head jobs first each level
-			CheckHeadPositions(level)
-
-			// Loop through all unassigned players
-			for(var/mob/new_player/player in unassigned)
-
-				// Loop through all jobs
-				for(var/datum/job/job in shuffledoccupations) // SHUFFLE ME BABY
-					if(!job || mode.disabled_jobs.Find(job.title) )
-						continue
-
-					if(jobban_isbanned(player, job.title))
-						Debug("DO isbanned failed, Player: [player], Job:[job.title]")
-						continue
-
-					if(!job.player_old_enough(player.client))
-						Debug("DO player not old enough, Player: [player], Job:[job.title]")
-						continue
-
-					// If the player wants that job on this level, then try give it to him.
-					if(player.client.prefs.CorrectLevel(job,level))
-
-						// If the job isn't filled
-						if((job.current_positions < job.spawn_positions) || job.spawn_positions == -1)
-							Debug("DO pass, Player: [player], Level:[level], Job:[job.title]")
-							AssignRole(player, job.title)
-							unassigned -= player
-							break
-
-		// Hand out random jobs to the people who didn't get any in the last check
-		// Also makes sure that they got their preference correct
-		for(var/mob/new_player/player in unassigned)
-			if(player.client.prefs.alternate_option == GET_RANDOM_JOB)
-				GiveRandomJob(player)
-
-		Debug("DO, Standard Check end")
-
-		Debug("DO, Running AC2")
-
-		// For those who wanted to be assistant if their preferences were filled, here you go.
-		for(var/mob/new_player/player in unassigned)
-			if(player.client.prefs.alternate_option == BE_ASSISTANT)
-				Debug("AC2 Assistant located, Player: [player]")
-				if(GLOB.using_map.flags & MAP_HAS_BRANCH)
-					var/datum/mil_branch/branch = mil_branches.get_branch(player.get_branch_pref())
-					AssignRole(player, branch.assistant_job)
-				else
-					AssignRole(player, "Assistant")
-
-		//For ones returning to lobby
-		for(var/mob/new_player/player in unassigned)
-			if(player.client.prefs.alternate_option == RETURN_TO_LOBBY)
-				player.ready = 0
-				player.new_player_panel_proc()
-				unassigned -= player
-		return 1
-
-
-	proc/EquipRank(var/mob/living/carbon/human/H, var/rank, var/joined_late = 0)
-		if(!H)	return null
-
-		var/datum/job/job = GetJob(rank)
-		var/list/spawn_in_storage = list()
-
-		if(job)
-
-			//Equip job items.
-			job.setup_account(H)
-			job.equip(H, H.mind ? H.mind.role_alt_title : "", H.char_branch, H.char_rank)
-			job.apply_fingerprints(H)
-
-			// Equip custom gear loadout, replacing any job items
-			var/list/loadout_taken_slots = list()
-			if(H.client.prefs.Gear() && job.loadout_allowed)
-				for(var/thing in H.client.prefs.Gear())
-					var/datum/gear/G = gear_datums[thing]
-					if(G)
-						var/permitted
-						if(G.allowed_roles)
-							for(var/job_type in G.allowed_roles)
-								if(job.type == job_type)
-									permitted = 1
-						else
-							permitted = 1
-
-						if(G.whitelisted && (!(H.species.name in G.whitelisted)))
-							permitted = 0
-
-						if(!permitted)
-							to_chat(H, "<span class='warning'>Your current species, job or whitelist status does not permit you to spawn with [thing]!</span>")
-							continue
-
-						if(!G.slot || G.slot == slot_tie || (G.slot in loadout_taken_slots) || !G.spawn_on_mob(H, H.client.prefs.Gear()[G.display_name]))
-							spawn_in_storage.Add(G)
-						else
-							loadout_taken_slots.Add(G.slot)
-
-			// do accessories last so they don't attach to a suit that will be replaced
-			if(H.char_rank && H.char_rank.accessory)
-				for(var/accessory_path in H.char_rank.accessory)
-					var/list/accessory_data = H.char_rank.accessory[accessory_path]
-					if(islist(accessory_data))
-						var/amt = accessory_data[1]
-						var/list/accessory_args = accessory_data.Copy()
-						accessory_args[1] = src
-						for(var/i in 1 to amt)
-							H.equip_to_slot_or_del(new accessory_path(arglist(accessory_args)), slot_tie)
-					else
-						for(var/i in 1 to (isnull(accessory_data)? 1 : accessory_data))
-							H.equip_to_slot_or_del(new accessory_path(src), slot_tie)
-
+/*
+	var/soviet_count = 0
+	var/german_count = 0
+	var/civilian_count = 0
+	var/partisan_count = 0
+*/
+	var/current_german_squad = 1
+	var/current_soviet_squad = 1
+	var/current_usa_squad = 1
+	var/current_japan_squad = 1
+
+	var/german_squad_members = 0
+	var/german_squad_leaders = 0
+
+	var/japan_squad_members = 0
+	var/japan_squad_leaders = 0
+
+	var/usa_squad_members = 0
+	var/usa_squad_leaders = 0
+
+	var/soviet_squad_members = 0
+	var/soviet_squad_leaders = 0
+
+	var/german_squad_info[4]
+	var/soviet_squad_info[4]
+	var/usa_squad_info[4]
+	var/japan_squad_info[4]
+
+	var/german_officer_squad_info[4]
+	var/soviet_officer_squad_info[4]
+	var/usa_officer_squad_info[4]
+	var/japan_officer_squad_info[4]
+
+	var/italians_were_enabled = FALSE
+	var/SS_was_enabled = FALSE
+	var/civilians_were_enabled = FALSE
+	var/partisans_were_enabled = FALSE
+	var/croation_was_enabled = FALSE
+	var/terek_was_enabled = FALSE
+	var/ukraine_was_enabled = FALSE
+
+
+	var/admin_expected_clients = 0
+
+/datum/controller/occupations/proc/toggle_roundstart_autobalance(var/_clients = 0, var/announce = TRUE)
+
+	if (map)
+		map.faction_organization = map.initial_faction_organization.Copy()
+
+	_clients = max(max(_clients, (map ? map.min_autobalance_players : 0)), clients.len, admin_expected_clients)
+
+	var/autobalance_for_players = round(max(_clients, (clients.len/config.max_expected_players) * 50))
+
+	if (announce == TRUE)
+		world << "<span class = 'notice'>Setting up roundstart autobalance for [max(_clients, autobalance_for_players)] players.</span>"
+	else if (announce == 2)
+		if (!roundstart_time)
+			world << "<span class = 'warning'>An admin has changed autobalance to be set up for [max(_clients, autobalance_for_players)] players.</span>"
 		else
-			to_chat(H, "Your job is [rank] and the game just can't handle it! Please report this bug to an administrator.")
+			world << "<span class = 'warning'>An admin has reset autobalance for [max(_clients, autobalance_for_players)] players.</span>"
 
-		H.job = rank
+	var/italiano = FALSE
+	var/warcrimes = FALSE
+	var/morwarcrimes = FALSE
+	var/evenmorwarcrimes = FALSE
+	for (var/datum/job/J in occupations)
+		if (map)
+			if (J.is_SS)
+				if (!map.available_subfactions.Find(SCHUTZSTAFFEL))
+					J.total_positions = 0
+					continue
+			if (J.is_SS_TV)
+				if (!map.available_subfactions.Find(SS_TV))
+					J.total_positions = 0
+					continue
+			if (J.is_prisoner)
+				if (!map.available_subfactions.Find(SOVIET_PRISONER))
+					J.total_positions = 0
+					continue
+			if (J.is_reichstag)
+				if (!map.available_subfactions.Find(GERMAN_REICHSTAG))
+					J.total_positions = 0
+					continue
+			if (J.is_dirlewanger)
+				if (!map.available_subfactions.Find(DIRLEWANGER))
+					J.total_positions = 0
+					continue
+			if (J.is_partisan)
+				if (!map.available_subfactions.Find(SOVIET_PARTISAN))
+					J.total_positions = 0
+					continue
+			if (J.is_escort)
+				if (!map.available_subfactions.Find(ESCORT))
+					J.total_positions = 0
+					continue
+			else if (J.base_type_flag() == ITALIAN)
+				if (!map.available_subfactions.Find(ITALIAN))
+					J.total_positions = 0
+					continue
+			else if (J.is_terek)
+				if (!map.available_subfactions.Find(TEREK))
+					J.total_positions = 0
+					continue
+			else if (J.is_croation)
+				if (!map.available_subfactions.Find(CROATION))
+					J.total_positions = 0
+					continue
+			else if (J.is_uia)
+				if (!map.available_subfactions.Find(UKRAINE))
+					J.total_positions = 0
+					continue
 
-		if(!joined_late || job.latejoin_at_spawnpoints)
-			var/obj/S = get_roundstart_spawnpoint(rank)
+		if (autobalance_for_players >= J.player_threshold && J.title != "N/A" && J.title != "generic job")
+			var/positions = round((autobalance_for_players/J.scale_to_players) * J.max_positions)
+			positions = max(positions, J.min_positions)
+			positions = min(positions, J.max_positions)
+			J.total_positions = positions
+			if (!italiano)
+				if (istype(J, /datum/job/italian/soldier))
+					italiano = TRUE
+			if (!warcrimes)
+				if (istype(J, /datum/job/german/soldier_ss))
+					warcrimes = TRUE
+			if (!morwarcrimes)
+				if (istype(J, /datum/job/german/honey))
+					morwarcrimes = TRUE
+			if (!evenmorwarcrimes)
+				if (istype(J, /datum/job/german/croation))
+					evenmorwarcrimes = TRUE
+		else
+			J.total_positions = 0
 
-			if(istype(S, /obj/effect/landmark/start) && istype(S.loc, /turf))
-				H.forceMove(S.loc)
+	if (map && map.subfaction_is_main_faction)
+		announce = FALSE
+
+	if (italiano)
+		if (announce)
+			world << "<font size = 3><span class = 'notice'>The Wehrmacht has the assistance of the Italian Army for this battle.</span></font>"
+		italians_were_enabled = TRUE
+		for (var/obj/structure/vending/italian/apparel/pizzeria in vending_machine_list)
+			pizzeria.invisibility = 0
+			pizzeria.density = TRUE
+		for (var/obj/structure/vending/italian/equipment/meatballshooter in vending_machine_list)
+			meatballshooter.invisibility = 0
+			meatballshooter.density = TRUE
+	else
+		for (var/obj/structure/vending/italian/apparel/pizzeria in vending_machine_list)
+			pizzeria.invisibility = 101
+			pizzeria.density = FALSE
+		for (var/obj/structure/vending/italian/equipment/meatballshooter in vending_machine_list)
+			meatballshooter.invisibility = 101
+			meatballshooter.density = FALSE
+		if (map)
+			map.faction_organization -= ITALIAN
+
+	if (warcrimes)
+		if (announce)
+			world << "<font size = 3><span class = 'notice'>The Wehrmacht has the assistance of the Waffen-SS for this battle.</span></font>"
+		SS_was_enabled = TRUE
+	if (morwarcrimes)
+		if (announce)
+			world << "<font size = 3><span class = 'notice'>The Wehrmacht has the assistance of the Terek Division for this battle.</span></font>"
+		terek_was_enabled = TRUE
+	if (evenmorwarcrimes)
+		if (announce)
+			world << "<font size = 3><span class = 'notice'>The Wehrmacht has the assistance of the Croation Division for this battle.</span></font>"
+		croation_was_enabled = TRUE
+	if (!is_side_locked(CIVILIAN) && map && map.faction_organization.Find(CIVILIAN) && map.faction_organization.Find(PARTISAN))
+		if (italiano || warcrimes || autobalance_for_players >= PLAYER_THRESHOLD_HIGHEST-10)
+			if (announce)
+				world << "<font size = 3><span class = 'notice'>Civilian and Partisan factions are enabled.</span></font>"
+			civilians_were_enabled = TRUE
+			partisans_were_enabled = TRUE
+		else
+			if (map)
+				map.faction_organization -= list(CIVILIAN, PARTISAN)
+
+/datum/controller/occupations/proc/spawn_with_delay(var/mob/new_player/np, var/datum/job/j)
+	// for delayed spawning, wait the spawn_delay of the job
+	// and lock up one job position while np is spawning
+	if (!j.spawn_delay)
+		return
+
+	if (j.delayed_spawn_message)
+		np << j.delayed_spawn_message
+
+	np.delayed_spawning_as_job = j
+
+	// occupy a position slot
+
+	j.total_positions -= 1
+
+	spawn (j.spawn_delay)
+		if (np && np.delayed_spawning_as_job == j) // if np hasn't already spawned
+			// if np did spawn, unoccupy the position slot
+			np.AttemptLateSpawn(j.title)
+			return
+
+// full squads, not counting SLs
+/datum/controller/occupations/proc/full_squads(var/team)
+	switch (team)
+		if (GERMAN)
+			return round(german_squad_members/MEMBERS_PER_SQUAD)
+		if (SOVIET)
+			return round(soviet_squad_members/MEMBERS_PER_SQUAD)
+		if (USA)
+			return round(usa_squad_members/MEMBERS_PER_SQUAD)
+		if (JAPAN)
+			return round(japan_squad_members/MEMBERS_PER_SQUAD)
+	return FALSE
+
+/datum/controller/occupations/proc/must_have_squad_leader(var/team)
+	switch (team)
+		if (GERMAN)
+			if (full_squads(team) > german_squad_leaders && !(german_squad_leaders == 4))
+				return TRUE
+		if (SOVIET)
+			if (full_squads(team) > soviet_squad_leaders && !(soviet_squad_leaders == 4))
+				return TRUE
+		if (USA)
+			if (full_squads(team) > usa_squad_leaders && !(usa_squad_leaders == 4))
+				return TRUE
+		if (JAPAN)
+			if (full_squads(team) > japan_squad_leaders && !(japan_squad_leaders == 4))
+				return TRUE
+	return FALSE // not relevant for other teams
+
+/datum/controller/occupations/proc/must_not_have_squad_leader(var/team)
+	switch (team)
+		if (GERMAN)
+			if (german_squad_leaders > full_squads(team))
+				return TRUE
+		if (SOVIET)
+			if (soviet_squad_leaders > full_squads(team))
+				return TRUE
+		if (JAPAN)
+			if (japan_squad_leaders > full_squads(team))
+				return TRUE
+		if (USA)
+			if (usa_squad_leaders > full_squads(team))
+				return TRUE
+	return FALSE // not relevant for other teams
+
+
+// too many people joined as a soldier and not enough as SL
+// return FALSE if j is anything but a squad leader or special roles
+/datum/controller/occupations/proc/squad_leader_check(var/mob/new_player/np, var/datum/job/j)
+	var/current_squad = istype(j, /datum/job/german) ? current_german_squad : current_soviet_squad
+	if (!j.is_commander && !j.is_nonmilitary && !j.is_SS && !j.is_paratrooper)
+		// we're trying to join as a soldier or officer
+		if (j.is_officer) // handle officer
+			if (must_have_squad_leader(j.base_type_flag())) // only accept SLs
+				if (!j.SL_check_independent)
+					np << "<span class = 'danger'>Squad #[current_squad] needs a Squad Leader! You can't join as anything else until it has one. You can still spawn in through reinforcements, though.</span>"
+					return FALSE
+				else // we're joining as the SL or another allowed role
+					return TRUE
+		else
+			if (must_have_squad_leader(j.base_type_flag())) // only accept SLs
+				if (!j.SL_check_independent)
+					np << "<span class = 'danger'>Squad #[current_squad] needs a Squad Leader! You can't join as anything else until it has one. You can still spawn in through reinforcements, though.</span>"
+					return FALSE
+	else
+		if (must_have_squad_leader(j.base_type_flag()))
+			if (!j.SL_check_independent)
+				np << "<span class = 'danger'>Squad #[current_german_squad] needs a Squad Leader! You can't join as anything else until it has one. You can still spawn in through reinforcements, though.</span>"
+				return FALSE
+	return TRUE
+
+// too many people joined as a SL and not enough as soldier
+// return FALSE if j is a squad leader
+/datum/controller/occupations/proc/squad_member_check(var/mob/new_player/np, var/datum/job/j)
+	if (!j.is_commander && !j.is_nonmilitary && !j.is_SS && !j.is_paratrooper)
+		// we're trying to join as a soldier or officer
+		if (j.is_officer) // handle officer
+			if (must_not_have_squad_leader(j.base_type_flag())) // don't accept SLs
+				if (istype(j, /datum/job/german/squad_leader) || istype(j, /datum/job/soviet/squad_leader))
+					np << "<span class = 'danger'>Squad #[current_german_squad] already has a Squad Leader! You can't join as one yet.</span>"
+					return FALSE
+				else
+					return TRUE
+	else
+		if (must_have_squad_leader(j.base_type_flag()))
+			if (!j.SL_check_independent)
+				np << "<span class = 'danger'>Squad #[current_german_squad] needs a Squad Leader! You can't join as anything else until it has one.</span>"
+				return FALSE
+	return TRUE
+
+/datum/controller/occupations/proc/relocate(var/mob/living/carbon/human/H)
+
+	if (!H)
+		return
+
+	var/spawn_location = H.job_spawn_location
+
+	if (!spawn_location && H.original_job)
+		spawn_location = H.original_job.spawn_location
+
+	#ifdef SPAWNLOC_DEBUG
+	world << "[H]([H.original_job.title]) job spawn location = [H.job_spawn_location]"
+	world << "[H]([H.original_job.title]) original job spawn location = [H.original_job.spawn_location]"
+	world << "[H]([H.original_job.title]) spawn location = [spawn_location]"
+	#endif
+
+	var/list/turfs = latejoin_turfs[spawn_location]
+	var/spawnpoint = pick(turfs)
+	if (!locate(/mob) in spawnpoint && !locate(/obj/structure) in spawnpoint)
+		H.loc = spawnpoint
+
+
+	// make sure we have the right ambience for our new location
+	spawn (1)
+		var/area/H_area = get_area(H)
+		if (H_area)
+			H_area.play_ambience(H)
+
+/datum/controller/occupations/proc/SetupOccupations(var/faction = "Station")
+	occupations = list()
+	var/list/all_jobs = typesof(/datum/job)
+	if (!all_jobs.len)
+		world << "<span class = 'red'>\b Error setting up jobs, no job datums found</span>"
+		return FALSE
+	for (var/J in all_jobs)
+		var/datum/job/job = new J()
+		if (!job)	continue
+		if (job.faction != faction)	continue
+		occupations += job
+	occupations += new/datum/job/german/oberstleutnant
+	return TRUE
+
+
+/datum/controller/occupations/proc/Debug(var/text)
+	if (!Debug2)	return FALSE
+	job_debug.Add(text)
+	return TRUE
+
+
+/datum/controller/occupations/proc/GetJob(var/rank)
+	if (!rank)	return null
+	for (var/datum/job/J in occupations)
+		if (!J)	continue
+		if (J.title == rank)	return J
+	return null
+
+/datum/controller/occupations/proc/GetPlayerAltTitle(var/mob/new_player/player, rank)
+	return player.original_job.title
+
+/datum/controller/occupations/proc/AssignRole(var/mob/new_player/player, var/rank, var/latejoin = FALSE, var/reinforcements = FALSE)
+	Debug("Running AR, Player: [player], Rank: [rank], LJ: [latejoin]")
+	if (player && rank)
+		var/datum/job/job = GetJob(rank)
+		if (!job)	return FALSE
+		if (!job.player_old_enough(player.client)) return FALSE
+		var/position_limit = job.total_positions
+		if ((job.current_positions < position_limit) || position_limit == -1 || reinforcements)
+			Debug("Player: [player] is now Rank: [rank], JCP:[job.current_positions], JPL:[position_limit]")
+			if (player.mind)
+				player.mind.assigned_role = rank
+				player.mind.assigned_job = job
+			player.original_job = job
+			player.original_job_title = player.original_job.title
+			if (player.mind)
+				player.mind.role_alt_title = GetPlayerAltTitle(player, rank)
+			unassigned -= player
+			job.current_positions++
+			return TRUE
+	Debug("AR has failed, Player: [player], Rank: [rank]")
+	return FALSE
+
+/datum/controller/occupations/proc/FreeRole(var/rank)	//making additional slot on the fly
+	var/datum/job/job = GetJob(rank)
+	if (job && job.current_positions >= job.total_positions && job.total_positions != -1)
+		--job.current_positions
+		return TRUE
+	return FALSE
+
+/datum/controller/occupations/proc/ResetOccupations()
+
+	for (var/mob/new_player/player in player_list)
+		if ((player) && (player.mind))
+			player.mind.assigned_role = null
+			player.mind.special_role = null
+	SetupOccupations()
+	unassigned = list()
+	return
+
+/datum/controller/occupations/proc/EquipRank(var/mob/living/carbon/human/H, var/rank, var/joined_late = FALSE)
+	if (!H)	return null
+
+	var/datum/job/job = GetJob(rank)
+
+	if (job)
+
+		//Equip job items.
+
+		H.wipe_notes()
+
+		job.equip(H)
+
+		// civs and partisans
+		if (istype(job, /datum/job/partisan))
+			H.equip_coat(/obj/item/clothing/suit/storage/coat/civilian)
+		else if (istype(job, /datum/job/german))
+			if (job.is_officer)
+				H.equip_coat(/obj/item/clothing/suit/storage/coat/german/officer)
+			else if (job.is_SS)
+				H.equip_coat(/obj/item/clothing/suit/storage/coat/german/SS)
 			else
-				var/datum/spawnpoint/spawnpoint = get_spawnpoint_for(H.client, rank)
-				H.forceMove(pick(spawnpoint.turfs))
+				H.equip_coat(/obj/item/clothing/suit/storage/coat/german)
+		else if (istype(job, /datum/job/soviet))
+			if (job.is_officer)
+				H.equip_coat(/obj/item/clothing/suit/storage/coat/soviet/officer)
+			else if (job.is_partisan)
+				H.equip_coat(/obj/item/clothing/suit/storage/coat/polcoat1)
+			else
+				H.equip_coat(/obj/item/clothing/suit/storage/coat/soviet)
+		else if (istype(job, /datum/job/italian))
+			H.equip_coat(/obj/item/clothing/suit/storage/coat/italian)
+		else if (istype(job, /datum/job/usa))
+			H.equip_coat(/obj/item/clothing/suit/storage/coat/american)
 
-			// Moving wheelchair if they have one
-			if(H.buckled && istype(H.buckled, /obj/structure/bed/chair/wheelchair))
-				H.buckled.forceMove(H.loc)
-				H.buckled.set_dir(H.dir)
+		#define SAFE_SPAWN_TIME 4
+		// Add loadout items. spawn(SAFE_SPAWN_TIME) so it happens after our pockets are filled with default job items
+		spawn (SAFE_SPAWN_TIME)
+			if (map.custom_loadout && !findtext("[H.original_job.type]", "doctor"))
+				if (!list(CIVILIAN).Find(H.original_job.base_type_flag()))
+					for (var/v in 1 to 2)
+						var/slot = (v == 1 ? slot_l_store : slot_r_store)
+						// short circuit if pockets are already full
+						switch (slot)
+							if (slot_l_store)
+								if (H.l_store)
+									continue
+							if (slot_r_store)
+								if (H.r_store)
+									continue
+						var/other_slot_num = (v == 1 ? 2 : 1)
+						if (H.client && H.client.prefs.pockets.len >= v)
+							switch (lowertext(H.client.prefs.pockets[v]))
+								if (null, "Magazine")
+									continue
+								if ("water")
+									H.equip_to_slot_or_del(new /obj/item/weapon/reagent_containers/food/drinks/bottle/water/filled(H), slot)
+/*								if ("booze")
+									var/probs = list()
+									switch (H.original_job.base_type_flag())
+										if (GERMAN)
+											probs["beer"] = 75
+											probs["vodka"] = 15
+											probs["wine"] = 10
+										if (ITALIAN)
+											probs["beer"] = 50
+											probs["vodka"] = 10
+											probs["wine"] = 40
+										if (SOVIET, PARTISAN)
+											probs["beer"] = 40
+											probs["vodka"] = 60
+											probs["wine"] = 0
 
-		// If they're head, give them the account info for their department
-		if(H.mind && job.head_position)
-			var/remembered_info = ""
-			var/datum/money_account/department_account = department_accounts[job.department]
+									tryagain
+									if (prob(probs["beer"]))
+										H.equip_to_slot_or_del(new /obj/item/weapon/reagent_containers/food/drinks/bottle/small/beer(H), slot)
+									else if (prob(probs["vodka"]))
+										H.equip_to_slot_or_del(new /obj/item/weapon/reagent_containers/food/drinks/bottle/vodka(H), slot)
+									else if (prob(probs["wine"]))
+										H.equip_to_slot_or_del(new /obj/item/weapon/reagent_containers/food/drinks/bottle/wine(H), slot)
+									else goto tryagain
+*/
+								if ("grenade")
+									switch (H.original_job.base_type_flag())
+										if (GERMAN, ITALIAN)
+											if (prob(50))
+												H.equip_to_slot_or_del(new /obj/item/weapon/grenade/explosive/stgnade(H), slot)
+											else
+												H.equip_to_slot_or_del(new /obj/item/weapon/grenade/explosive/l2a2(H), slot)
+										if (SOVIET, PARTISAN)
+											if (prob(50))
+												H.equip_to_slot_or_del(new /obj/item/weapon/grenade/explosive/rgd(H), slot)
+											else
+												H.equip_to_slot_or_del(new /obj/item/weapon/grenade/explosive/f1(H), slot)
+								if ("smoke grenade")
+									switch (H.original_job.base_type_flag())
+										if (GERMAN, ITALIAN)
+											H.equip_to_slot_or_del(new /obj/item/weapon/grenade/smokebomb/german(H), slot)
+										if (SOVIET, PARTISAN)
+											H.equip_to_slot_or_del(new /obj/item/weapon/grenade/smokebomb/soviet(H), slot)
+								if ("stolen gun") // hackcode to equip ammo after the gun always
+									var/ammo_check = (H.client.prefs.pockets[other_slot_num] == "Stolen gun ammo")
+									H.original_job.equip_random_enemy_gun(H, slot, ammo_check)
+									if (ammo_check)
+										break // if we're slot #1, we know what went in the other slot already
+								if ("stolen gun ammo")
+									continue // see "stolen gun" just above
+								if ("flare")
+									H.equip_to_slot_or_del(new /obj/item/flashlight/flare(H), slot)
+								if ("knife")
+									H.equip_to_slot_or_del(new /obj/item/weapon/material/knife(H), slot)
+								if ("cigarettes")
+									H.equip_to_slot(new /obj/item/weapon/storage/fancy/cigarettes(H), slot)
+								if ("lighter")
+									H.equip_to_slot(new /obj/item/weapon/flame/lighter(H), slot)
+								if ("crowbar")
+									H.equip_to_slot(new /obj/item/weapon/crowbar(H), slot)
+								if ("wrench")
+									H.equip_to_slot(new /obj/item/weapon/wrench(H), slot)
+								if ("screwdriver")
+									H.equip_to_slot(new /obj/item/weapon/screwdriver(H), slot)
 
-			if(department_account)
-				remembered_info += "<b>Your department's account number is:</b> #[department_account.account_number]<br>"
-				remembered_info += "<b>Your department's account pin is:</b> [department_account.remote_access_pin]<br>"
-				remembered_info += "<b>Your department's account funds are:</b> T[department_account.money]<br>"
+		// Give the guy some ammo for his gun: spawn(SAFE_SPAWN_TIME*2) so it happens after custom loadout
+		spawn (SAFE_SPAWN_TIME*2)
+			for (var/obj/item/weapon/gun/projectile/gun in H.contents)
+				if (gun.w_class == 5 && gun.gun_type == GUN_TYPE_MG) // MG
+					if (H.back && istype(H.back, /obj/item/weapon/storage/backpack))
+						for (var/v in 1 to 3)
+							H.back.contents += new gun.magazine_type(H)
+					else if (H.l_hand && istype(H.l_hand, /obj/item/weapon/storage/backpack))
+						for (var/v in 1 to 3)
+							H.l_hand.contents += new gun.magazine_type(H)
+					else if (H.r_hand && istype(H.r_hand, /obj/item/weapon/storage/backpack))
+						for (var/v in 1 to 3)
+							H.r_hand.contents += new gun.magazine_type(H)
+				else if (gun.magazine_type)
+					if (!H.r_store)
+						H.equip_to_slot_or_del(new gun.magazine_type(H), slot_r_store)
+					if (!H.l_store)
+						H.equip_to_slot_or_del(new gun.magazine_type(H), slot_l_store)
+					if (!H.belt)
+						H.equip_to_slot_or_del(new gun.magazine_type(H), slot_belt)
+				break // but only the first gun we find
+			for (var/obj/item/weapon/gun/projectile/gun in H.contents)
+				if (gun == H.belt)
+					if (gun.w_class != 5 || gun.gun_type != GUN_TYPE_MG) // MG
+						if (gun.magazine_type)
+							if (!H.r_store)
+								H.equip_to_slot_or_del(new gun.magazine_type(H), slot_r_store)
+							if (!H.l_store)
+								H.equip_to_slot_or_del(new gun.magazine_type(H), slot_l_store)
+						break // but only the first gun we find
+		#undef SAFE_SPAWN_TIME
 
-			H.mind.store_memory(remembered_info)
+		// get our new real name based on jobspecific language ( and more
+		job.update_character(H)
+
+		if (names_used[H.real_name])
+			job.give_random_name(H)
+
+		names_used[H.real_name] = TRUE
+
+		if (job.rank_abbreviation)
+			job.rank_abbreviation = capitalize(lowertext(job.rank_abbreviation))
+			H.real_name = "[job.rank_abbreviation]. [H.real_name]"
+			H.name = H.real_name
+
+		job.apply_fingerprints(H)
+		job.assign_faction(H)
+
+		if (!game_started)
+			if (!job.try_make_initial_spy(H))
+				job.try_make_jew(H)
+		else
+			job.try_make_latejoin_spy(H)
+
+		// removed /mob/living/job since it was confusing; it wasn't a job, but a job title
+		H.original_job = job
+		H.original_job_title = H.original_job.title
+
+		// add us to the list of players for our job for quick player calculations
+		if (!processes.job_data.job2players[H.original_job.title])
+			processes.job_data.job2players[H.original_job.title] = list()
+		processes.job_data.job2players[H.original_job.title] += H
+
+		#ifdef SPAWNLOC_DEBUG
+		if (H.original_job)
+			world << "[H]'s original job: [H.original_job]"
+		else
+			world << "<span class = 'danger'>WARNING: [H] has no original job!!</span>"
+		#endif
+
+		var/spawn_location = H.original_job.spawn_location
+		H.job_spawn_location = spawn_location
+
+		#ifdef SPAWNLOC_DEBUG
+		world << "[H] ([rank]) spawn location = [spawn_location]"
+		#endif
+
+		if (!spawn_location)
+			switch (H.original_job.base_type_flag())
+				if (GERMAN)
+					spawn_location = "JoinLateHeer"
+				if (SOVIET)
+					spawn_location = "JoinLateRA"
+				if (USA)
+					spawn_location = "JoinLateUSA"
+				if (JAPAN)
+					spawn_location = "JoinLateHeer"
+				if ((PARTISAN) || (POLISH_INSURGENTS))
+					spawn_location = "JoinLatePartisan"
+
+		// fixes spawning at 1,1,1
+
+		if (!spawn_location)
+			if (findtext(H.original_job.spawn_location, "JoinLateHeer"))
+				spawn_location = "JoinLateHeer"
+			else if (findtext(H.original_job.spawn_location, "JoinLateSS"))
+				spawn_location = "JoinLateSS"
+			else if (findtext(H.original_job.spawn_location, "JoinLateRA"))
+				spawn_location = "JoinLateRA"
+
+		H.job_spawn_location = spawn_location
+
+		#ifdef SPAWNLOC_DEBUG
+		world << "got to squadsetting code"
+		#endif
+
+		if (H.original_job.base_type_flag() == GERMAN)
+			current_german_squad = max(current_german_squad, H.squad_faction ? H.squad_faction.actual_number : current_german_squad)
+		else if (H.original_job.base_type_flag() == SOVIET)
+			current_soviet_squad = max(current_soviet_squad, H.squad_faction ? H.squad_faction.actual_number : current_soviet_squad)
+
+		#ifdef SPAWNLOC_DEBUG
+		world << "got past squadsetting code"
+		#endif
+
+		if ((!map || map.squad_spawn_locations) && H.squad_faction)
+			switch (spawn_location)
+				// German
+				if ("JoinLateHeer")
+					spawn_location = "JoinLateHeer-S[current_german_squad]"
+				if ("JoinLateHeerSL")
+					spawn_location = "JoinLateHeer-S[current_german_squad]-Leader"
+				// Soviet
+				if ("JoinLateRA")
+					spawn_location = "JoinLateRA-S[current_soviet_squad]"
+				if ("JoinLateRASL")
+					spawn_location = "JoinLateRA-S[current_soviet_squad]-Leader"
+
+		H.job_spawn_location = spawn_location
+
+		if (isgermansquadmember_or_leader(H))
+			if (isgermansquadleader(H))
+				++german_squad_leaders
+				german_squad_info[current_german_squad] = "<b>The leader of your squad (#[current_german_squad]) is [H.real_name]. He has a golden HUD.</b>"
+				if (!istype(get_area(H), /area/prishtina/admin) && ticker.current_state != GAME_STATE_PREGAME) // first check fails due to bad location, fix
+					world << "<b>The leader of Wehrmacht Squad #[current_german_squad] is [H.real_name]!</b>"
+				german_officer_squad_info[current_german_squad] = "<b><i>The leader of squad #[current_german_squad] is [H.real_name].</i></b>"
+			else
+				if (!job.is_officer && !job.is_SS && !job.is_paratrooper && !job.is_nonmilitary)
+					++german_squad_members
+					if (german_squad_info[current_german_squad])
+						spawn (0)
+							H << german_squad_info[current_german_squad]
+							H.add_memory(german_squad_info[current_german_squad])
+					else
+						spawn (2)
+							H << "<i>Your squad, #[current_german_squad], does not have a Squad Leader yet. Consider waiting for one before deploying.</i>"
+
+		else if (issovietsquadmember_or_leader(H))
+			if (issovietsquadleader(H))
+				soviet_squad_info[current_soviet_squad] = "<b>The leader of your squad (#[current_soviet_squad]) is [H.real_name]. He has a golden HUD.</b>"
+				if (!istype(get_area(H), /area/prishtina/admin) && ticker.current_state != GAME_STATE_PREGAME) // first check fails due to bad location, fix
+					world << "<b>The leader of Soviet Squad #[current_soviet_squad] is [H.real_name]!</b>"
+				soviet_officer_squad_info[current_soviet_squad] = "<b><i>The leader of squad #[current_soviet_squad] is [H.real_name].</i></b>"
+				++soviet_squad_leaders
+			else
+				if (!job.is_officer)
+					++soviet_squad_members
+					if (soviet_squad_info[current_soviet_squad])
+						spawn (0)
+							H << soviet_squad_info[current_soviet_squad]
+							H.add_memory(soviet_squad_info[current_soviet_squad])
+					else
+						spawn (2)
+							H << "<i>Your squad, #[current_soviet_squad], does not have a Squad Leader yet. Consider waiting for one before deploying.</i>"
+		else if (isusasquadmember_or_leader(H))
+			if (isusasquadleader(H))
+				usa_squad_info[current_usa_squad] = "<b>The leader of your squad (#[current_usa_squad]) is [H.real_name]. He has a golden HUD.</b>"
+				if (!istype(get_area(H), /area/prishtina/admin) && ticker.current_state != GAME_STATE_PREGAME) // first check fails due to bad location, fix
+					world << "<b>The leader of American Squad #[current_usa_squad] is [H.real_name]!</b>"
+				usa_officer_squad_info[current_usa_squad] = "<b><i>The leader of squad #[current_usa_squad] is [H.real_name].</i></b>"
+				++usa_squad_leaders
+			else
+				if (!job.is_officer)
+					++usa_squad_members
+					if (usa_squad_info[current_usa_squad])
+						spawn (0)
+							H << usa_squad_info[current_usa_squad]
+							H.add_memory(usa_squad_info[current_usa_squad])
+					else
+						spawn (2)
+							H << "<i>Your squad, #[current_usa_squad], does not have a Squad Leader yet. Consider waiting for one before deploying.</i>"
+		else if (isjapansquadmember_or_leader(H))
+			if (isjapansquadleader(H))
+				japan_squad_info[current_japan_squad] = "<b>The leader of your squad (#[current_japan_squad]) is [H.real_name]. He has a golden HUD.</b>"
+				if (!istype(get_area(H), /area/prishtina/admin) && ticker.current_state != GAME_STATE_PREGAME) // first check fails due to bad location, fix
+					world << "<b>The leader of Japanese Squad #[current_japan_squad] is [H.real_name]!</b>"
+				japan_officer_squad_info[current_japan_squad] = "<b><i>The leader of squad #[current_japan_squad] is [H.real_name].</i></b>"
+				++japan_squad_leaders
+			else
+				if (!job.is_officer)
+					++japan_squad_members
+					if (japan_squad_info[current_japan_squad])
+						spawn (0)
+							H << japan_squad_info[current_japan_squad]
+							H.add_memory(japan_squad_info[current_japan_squad])
+					else
+						spawn (2)
+							H << "<i>Your squad, #[current_japan_squad], does not have a Squad Leader yet. Consider waiting for one before deploying.</i>"
+
+		else if (H.original_job.is_officer && H.original_job.base_type_flag() == SOVIET)
+			spawn (5)
+				for (var/i in 1 to soviet_officer_squad_info.len)
+					if (soviet_officer_squad_info[i])
+				//		H << "<br>[soviet_officer_squad_info[i]]"
+						H.add_memory(soviet_officer_squad_info[i])
+
+		else if (H.original_job.is_officer && H.original_job.base_type_flag() == GERMAN)
+			spawn (5)
+				for (var/i in 1 to german_officer_squad_info.len)
+					if (german_officer_squad_info[i])
+				//		H << "<br>[german_officer_squad_info[i]]"
+						H.add_memory(german_officer_squad_info[i])
+
+		else if (H.original_job.is_officer && H.original_job.base_type_flag() == USA)
+			spawn (5)
+				for (var/i in 1 to usa_officer_squad_info.len)
+					if (usa_officer_squad_info[i])
+				//		H << "<br>[german_officer_squad_info[i]]"
+						H.add_memory(usa_officer_squad_info[i])
+		else if (H.original_job.is_officer && H.original_job.base_type_flag() == JAPAN)
+			spawn (5)
+				for (var/i in 1 to japan_officer_squad_info.len)
+					if (japan_officer_squad_info[i])
+				//		H << "<br>[german_officer_squad_info[i]]"
+						H.add_memory(japan_officer_squad_info[i])
+
+		if (H.original_job.is_officer)
+			if (H.original_job.base_type_flag() == GERMAN)
+		//		H << "The passcode for radios and phones is <b>[supply_codes[GERMAN]].</b>"
+				H.add_memory("The passcode for radios and phones is [processes.supply.codes[GERMAN]].")
+
+			else if (H.original_job.base_type_flag() == SOVIET)
+		//		H << "The passcode for radios and phones is <b>[supply_codes[SOVIET]].</b>"
+				H.add_memory("The passcode for radios and phones is [processes.supply.codes[SOVIET]].")
+			else if (H.original_job.base_type_flag() == USA)
+		//		H << "The passcode for radios and phones is <b>[supply_codes[SOVIET]].</b>"
+				H.add_memory("The passcode for radios and phones is [processes.supply.codes[USA]].")
+			else if (H.original_job.base_type_flag() == JAPAN)
+		//		H << "The passcode for radios and phones is <b>[supply_codes[SOVIET]].</b>"
+				H.add_memory("The passcode for radios and phones is [processes.supply.codes[JAPAN]].")
+
+		#ifdef SPAWNLOC_DEBUG
+		world << "[H] ([rank]) GOT TO job spawn location = [H.job_spawn_location]"
+		#endif
 
 		var/alt_title = null
-		if(H.mind)
+		if (H.mind)
 			H.mind.assigned_role = rank
 			alt_title = H.mind.role_alt_title
 
-			switch(rank)
-				if("Cyborg")
-					return H.Robotize()
-				if("AI")
-					return H
-				if("Captain")
-					var/sound/announce_sound = (GAME_STATE <= RUNLEVEL_SETUP)? null : sound('sound/misc/boatswain.ogg', volume=20)
-					captain_announcement.Announce("All hands, Captain [H.real_name] on deck!", new_sound=announce_sound)
-
-		// put any loadout items that couldn't spawn into storage or on the ground
-		for(var/datum/gear/G in spawn_in_storage)
-			G.spawn_in_storage_or_drop(H, H.client.prefs.Gear()[G.display_name])
-
-		if(istype(H)) //give humans wheelchairs, if they need them.
-			var/obj/item/organ/external/l_foot = H.get_organ(BP_L_FOOT)
-			var/obj/item/organ/external/r_foot = H.get_organ(BP_R_FOOT)
-			if(!l_foot || !r_foot)
+		if (istype(H)) //give humans wheelchairs, if they need them.
+			var/obj/item/organ/external/l_foot = H.get_organ("l_foot")
+			var/obj/item/organ/external/r_foot = H.get_organ("r_foot")
+			if ((!l_foot || l_foot.status & ORGAN_DESTROYED) && (!r_foot || r_foot.status & ORGAN_DESTROYED))
 				var/obj/structure/bed/chair/wheelchair/W = new /obj/structure/bed/chair/wheelchair(H.loc)
 				H.buckled = W
 				H.update_canmove()
@@ -516,178 +810,182 @@ var/global/datum/controller/occupations/job_master
 				W.buckled_mob = H
 				W.add_fingerprint(H)
 
-		to_chat(H, "<B>You are [job.total_positions == 1 ? "the" : "a"] [alt_title ? alt_title : rank].</B>")
 
-		if(job.supervisors)
-			to_chat(H, "<b>As the [alt_title ? alt_title : rank] you answer directly to [job.supervisors]. Special circumstances may change this.</b>")
+		#ifdef SPAWNLOC_DEBUG
+		world << "[H] ([rank]) GOT TO before spawnID()"
+		#endif
 
-		to_chat(H, "<b>To speak on your department's radio channel use :h. For the use of other channels, examine your headset.</b>")
+		spawnKeys(H, rank, alt_title)
 
-		if(job.req_admin_notify)
-			to_chat(H, "<b>You are playing a job that is important for Game Progression. If you have to disconnect, please notify the admins via adminhelp.</b>")
+		#ifdef SPAWNLOC_DEBUG
+		world << "[H] ([rank]) GOT TO after spawnID()"
+		#endif
 
-
-		// EMAIL GENERATION
-		var/domain
-		if(H.char_branch && H.char_branch.email_domain)
-			domain = H.char_branch.email_domain
-		else
-			domain = "freemail.nt"
-		var/sanitized_name = sanitize(replacetext(replacetext(lowertext(H.real_name), " ", "."), "'", ""))
-		var/complete_login = "[sanitized_name]@[domain]"
-
-		// It is VERY unlikely that we'll have two players, in the same round, with the same name and branch, but still, this is here.
-		// If such conflict is encountered, a random number will be appended to the email address. If this fails too, no email account will be created.
-		if(ntnet_global.does_email_exist(complete_login))
-			complete_login = "[sanitized_name][random_id(/datum/computer_file/data/email_account/, 100, 999)]@[domain]"
-
-		// If even fallback login generation failed, just don't give them an email. The chance of this happening is astronomically low.
-		if(ntnet_global.does_email_exist(complete_login))
-			to_chat(H, "You were not assigned an email address.")
-			H.mind.store_memory("You were not assigned an email address.")
-		else
-			var/datum/computer_file/data/email_account/EA = new /datum/computer_file/data/email_account()
-			EA.password = GenerateKey()
-			EA.login = 	complete_login
-			to_chat(H, "Your email account address is <b>[EA.login]</b> and the password is <b>[EA.password]</b>. This information has also been placed into your notes.")
-			H.mind.store_memory("Your email account address is [EA.login] and the password is [EA.password].")
-		// END EMAIL GENERATION
-
+		if (job.req_admin_notify)
+			H << "<b>You are playing a job that is important for Game Progression. If you have to disconnect, please notify the admins via adminhelp.</b>"
 		//Gives glasses to the vision impaired
-		if(H.disabilities & NEARSIGHTED)
+		if (H.disabilities & NEARSIGHTED)
 			var/equipped = H.equip_to_slot_or_del(new /obj/item/clothing/glasses/regular(H), slot_glasses)
-			if(equipped)
+			if (equipped != TRUE)
 				var/obj/item/clothing/glasses/G = H.glasses
-				G.prescription = 7
+				G.prescription = TRUE
 
-		BITSET(H.hud_updateflag, ID_HUD)
-		BITSET(H.hud_updateflag, IMPLOYAL_HUD)
-		BITSET(H.hud_updateflag, SPECIALROLE_HUD)
+		if (!istype(H, /mob/living/carbon/human/corpse))
+			relocate(H)
+			if (H.client)
+				H.client.remove_gun_icons()
+
+		spawn (50)
+			H.stopDumbDamage = FALSE
+
+		H.memory()
+
 		return H
 
-	proc/LoadJobs(jobsfile) //ran during round setup, reads info from jobs.txt -- Urist
-		if(!config.load_jobs_from_txt)
-			return 0
+/datum/controller/occupations/proc/spawnKeys(var/mob/living/carbon/human/H, rank, title)
 
-		var/list/jobEntries = file2list(jobsfile)
+	if (!H)	return FALSE
 
-		for(var/job in jobEntries)
-			if(!job)
-				continue
+	var/datum/job/job = null
+	for (var/datum/job/J in occupations)
+		if (J.title == rank)
+			job = J
+			break
 
-			job = trim(job)
-			if (!length(job))
-				continue
+	if (job.uses_keys)
+		spawn_keys(H, rank, job)
+//		H << "<i>Click on a door with your <b>keychain</b> to open it. It will select the right key for you. To put the keychain in your hand, <b>drag</b> it.</i>"
 
-			var/pos = findtext(job, "=")
-			var/name = null
-			var/value = null
+	return TRUE
 
-			if(pos)
-				name = copytext(job, 1, pos)
-				value = copytext(job, pos + 1)
-			else
-				continue
+/datum/controller/occupations/proc/spawn_keys(var/mob/living/carbon/human/H, rank, var/datum/job/job)
 
-			if(name && value)
-				var/datum/job/J = GetJob(name)
-				if(!J)	continue
-				J.total_positions = text2num(value)
-				J.spawn_positions = text2num(value)
-				if(name == "AI" || name == "Cyborg")//I dont like this here but it will do for now
-					J.total_positions = 0
+	var/list/_keys = job.get_keys()
+	if (!_keys.len)
+		return
 
-		return 1
+	var/obj/item/weapon/storage/belt/keychain/keychain = new/obj/item/weapon/storage/belt/keychain()
 
+	if (!H.wear_id) // first, try to equip it to their ID slot
+		H.equip_to_slot_or_del(keychain, slot_wear_id)
+	else if (!H.belt) // first, try to equip it as their belt
+		H.equip_to_slot_or_del(keychain, slot_belt)
 
-	proc/HandleFeedbackGathering()
-		for(var/datum/job/job in occupations)
-			var/tmp_str = "|[job.title]|"
+	var/list/keys = job.get_keys()
 
-			var/level1 = 0 //high
-			var/level2 = 0 //medium
-			var/level3 = 0 //low
-			var/level4 = 0 //never
-			var/level5 = 0 //banned
-			var/level6 = 0 //account too young
-			for(var/mob/new_player/player in GLOB.player_list)
-				if(!(player.ready && player.mind && !player.mind.assigned_role))
-					continue //This player is not ready
-				if(jobban_isbanned(player, job.title))
-					level5++
-					continue
-				if(!job.player_old_enough(player.client))
-					level6++
-					continue
-				if(player.client.prefs.CorrectLevel(job, 1))
-					level1++
-				else if(player.client.prefs.CorrectLevel(job, 2))
-					level2++
-				else if(player.client.prefs.CorrectLevel(job, 3))
-					level3++
-				else level4++ //not selected
+	for (var/obj/item/weapon/key in keys)
+		if (keychain.can_be_inserted(key))
+			keychain.handle_item_insertion(key)
+			keychain.keys += key
+			keychain.update_icon_state()
 
-			tmp_str += "HIGH=[level1]|MEDIUM=[level2]|LOW=[level3]|NEVER=[level4]|BANNED=[level5]|YOUNG=[level6]|-"
-			feedback_add_details("job_preferences",tmp_str)
+/datum/controller/occupations/proc/is_side_locked(side)
+	if (!ticker)
+		return TRUE
+	if (side == SOVIET)
+		if (soviets_forceEnabled)
+			return FALSE
+		if (side_is_hardlocked(side))
+			return 2
+		return !ticker.can_latejoin_ruforce
+	else if (side == GERMAN || side == ITALIAN)
+		if (germans_forceEnabled)
+			return FALSE
+		if (side_is_hardlocked(side))
+			return 2
+		return !ticker.can_latejoin_geforce
+	else if (side == CIVILIAN)
+		if (civilians_forceEnabled)
+			return FALSE
+		return map.game_really_started()
+	else if (side == PARTISAN)
+		if (partisans_forceEnabled)
+			return FALSE
+		return map.game_really_started()
+	return FALSE
 
+// this is a solution to 5 germans and 1 soviet on lowpop.
+/datum/controller/occupations/proc/side_is_hardlocked(side)
 
-/**
- *  Return appropriate /datum/spawnpoint for given client and rank
- *
- *  Spawnpoint will be the one set in preferences for the client, unless the
- *  preference is not set, or the preference is not appropriate for the rank, in
- *  which case a fallback will be selected.
- */
-/datum/controller/occupations/proc/get_spawnpoint_for(client/C, rank)
+	// count number of each side
+	var/germans = alive_n_of_side(GERMAN)
+	var/soviets = alive_n_of_side(SOVIET)
+	var/italians = alive_n_of_side(ITALIAN)
+	var/civilians = alive_n_of_side(CIVILIAN)
+	var/partisans = alive_n_of_side(PARTISAN)
+//	var/poles = alive_n_of_side(POLISH_INSURGENTS)
+//	var/americans = alive_n_of_side(USA)
+//	var/japanese = alive_n_of_side(JAPAN)
 
-	if(!C)
-		CRASH("Null client passed to get_spawnpoint_for() proc!")
+	// by default no sides are hardlocked
+	var/max_germans = INFINITY
+	var/max_soviets = INFINITY
+	var/max_civilians = INFINITY
+	var/max_partisans = INFINITY
+//	var/max_americans = INFINITY
+//	var/max_poles = INFINITY
+//	var/max_japanese = INFINITY
 
-	var/mob/H = C.mob
-	var/spawnpoint = C.prefs.spawnpoint
-	var/datum/spawnpoint/spawnpos
+	// see job_data.dm
+	var/relevant_clients = clients.len
 
-	if(spawnpoint == DEFAULT_SPAWNPOINT_ID)
-		spawnpoint = GLOB.using_map.default_spawn
+	if (map && !map.faction_distribution_coeffs.Find(INFINITY))
+		if (map.faction_distribution_coeffs.Find(GERMAN))
+			max_germans = ceil(relevant_clients * map.faction_distribution_coeffs[GERMAN])
 
-	if(spawnpoint)
-		if(!(spawnpoint in GLOB.using_map.allowed_spawns))
-			if(H)
-				to_chat(H, "<span class='warning'>Your chosen spawnpoint ([C.prefs.spawnpoint]) is unavailable for the current map. Spawning you at one of the enabled spawn points instead. To resolve this error head to your character's setup and choose a different spawn point.</span>")
-			spawnpos = null
-		else
-			spawnpos = spawntypes()[spawnpoint]
+		// Italians are disabled/enabled whenever Germans are
 
-	if(spawnpos && !spawnpos.check_job_spawning(rank))
-		if(H)
-			to_chat(H, "<span class='warning'>Your chosen spawnpoint ([spawnpos.display_name]) is unavailable for your chosen job ([rank]). Spawning you at another spawn point instead.</span>")
-		spawnpos = null
+		if (map.faction_distribution_coeffs.Find(SOVIET))
+			max_soviets = ceil(relevant_clients * map.faction_distribution_coeffs[SOVIET])
 
-	if(!spawnpos)
-		// Step through all spawnpoints and pick first appropriate for job
-		for(var/spawntype in GLOB.using_map.allowed_spawns)
-			var/datum/spawnpoint/candidate = spawntypes()[spawntype]
-			if(candidate.check_job_spawning(rank))
-				spawnpos = candidate
-				break
+		if (map.faction_distribution_coeffs.Find(CIVILIAN))
+			max_civilians = ceil(relevant_clients * map.faction_distribution_coeffs[CIVILIAN])
 
-	if(!spawnpos)
-		// Pick at random from all the (wrong) spawnpoints, just so we have one
-		warning("Could not find an appropriate spawnpoint for job [rank].")
-		spawnpos = spawntypes()[pick(GLOB.using_map.allowed_spawns)]
+		if (map.faction_distribution_coeffs.Find(PARTISAN))
+			max_partisans = ceil(relevant_clients * map.faction_distribution_coeffs[PARTISAN])
 
-	return spawnpos
+//		if (map.faction_distribution_coeffs.Find(POLISH_INSURGENTS))
+//			max_poles = ceil(relevant_clients * map.faction_distribution_coeffs[POLISH_INSURGENTS])
 
-/datum/controller/occupations/proc/GetJobByType(job_type)
-	return occupations_by_type[job_type]
+//		if (map.faction_distribution_coeffs.Find(USA))
+//			max_americans = ceil(relevant_clients * map.faction_distribution_coeffs[USA])
 
-/datum/controller/occupations/proc/get_roundstart_spawnpoint(rank)
-	var/list/loc_list = list()
-	for(var/obj/effect/landmark/start/sloc in landmarks_list)
-		if(sloc.name != rank)	continue
-		if(locate(/mob/living) in sloc.loc)	continue
-		loc_list += sloc
-	if(loc_list.len)
-		return pick(loc_list)
-	else
-		return locate("start*[rank]") // use old stype
+//		if (map.faction_distribution_coeffs.Find(JAPAN))
+//			max_japanese = ceil(relevant_clients * map.faction_distribution_coeffs[JAPAN])
+
+	// fixes soviet-biased autobalance on verylow pop - Kachnov
+	if (map && relevant_clients <= 7)
+		if (map.faction_distribution_coeffs[SOVIET] > map.faction_distribution_coeffs[GERMAN])
+			max_soviets = max_germans
+		else if (map.faction_distribution_coeffs[GERMAN] > map.faction_distribution_coeffs[SOVIET])
+			max_germans = max_soviets
+		while ((max_germans+max_soviets) < relevant_clients)
+			++max_soviets
+
+	switch (side)
+		if (PARTISAN)
+			if (partisans_forceEnabled)
+				return FALSE
+			if (partisans >= max_partisans)
+				return TRUE
+			return FALSE
+		if (CIVILIAN)
+			if (civilians_forceEnabled)
+				return FALSE
+			if (civilians >= max_civilians)
+				return TRUE
+			return FALSE
+		if (GERMAN, ITALIAN)
+			if (germans_forceEnabled)
+				return FALSE
+			if ((germans+italians) >= max_germans)
+				return TRUE
+		if (SOVIET)
+			if (soviets_forceEnabled)
+				return FALSE
+			if (soviets >= max_soviets)
+				return TRUE
+		if (UKRAINIAN)
+			return TRUE
+
+	return FALSE

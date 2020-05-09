@@ -10,59 +10,25 @@
 	health = 75
 	maxHealth = 75
 
-	density = 1
-
-	attacktext = "swatted"
 	melee_damage_lower = 10
 	melee_damage_upper = 10
-	can_escape = 1
 
-	max_gas = list("phoron" = 2, "carbon_dioxide" = 5)
+	min_oxy = 5
+	max_co2 = 5
+	max_tox = 2 //We tuff bear
 
 	response_help = "pets"
 	response_harm = "hits"
 	response_disarm = "pushes"
 
-	known_commands = list("stay", "stop", "attack", "follow", "dance", "boogie", "boogy")
+	known_commands = list("stay", "stop", "attack", "follow")
 
-/mob/living/simple_animal/hostile/commanded/bear/hit_with_weapon(obj/item/O, mob/living/user, effective_force, hit_zone)
+/mob/living/simple_animal/hostile/commanded/bear/hit_with_weapon(obj/item/O, mob/living/user, var/effective_force, var/hit_zone)
 	. = ..()
-	if(!.)
+	if (!.)
 		emote("roars in rage!")
 
-/mob/living/simple_animal/hostile/commanded/bear/attack_hand(mob/living/carbon/human/M)
-	. = ..()
-	if(M.a_intent == I_HURT)
+/mob/living/simple_animal/hostile/commanded/bear/attack_hand(mob/living/carbon/human/M as mob)
+	..()
+	if (M.a_intent == I_HURT)
 		emote("roars in rage!")
-
-/mob/living/simple_animal/hostile/commanded/bear/listen()
-	if(stance != COMMANDED_MISC) //cant listen if its booty shakin'
-		return ..()
-
-//WE DANCE!
-/mob/living/simple_animal/hostile/commanded/bear/misc_command(mob/speaker,text)
-	stay_command()
-	stance = COMMANDED_MISC //nothing can stop this ride
-	spawn(0)
-		src.visible_message("\The [src] starts to dance!.")
-		var/datum/gender/G = gender_datums[gender]
-		for(var/i in 1 to 10)
-			if(stance != COMMANDED_MISC || incapacitated()) //something has stopped this ride.
-				return
-			var/message = pick(\
-							"moves [G.his] head back and forth!",\
-							"bobs [G.his] booty!",\
-							"shakes [G.his] paws in the air!",\
-							"wiggles [G.his] ears!",\
-							"taps [G.his] foot!",\
-							"shrugs [G.his] shoulders!",\
-							"dances like you've never seen!")
-			if(dir != WEST)
-				set_dir(WEST)
-			else
-				set_dir(EAST)
-			src.visible_message("\The [src] [message]")
-			sleep(30)
-		stance = COMMANDED_STOP
-		set_dir(SOUTH)
-		src.visible_message("\The [src] bows, finished with [G.his] dance.")

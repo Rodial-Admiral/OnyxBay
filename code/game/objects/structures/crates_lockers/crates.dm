@@ -1,72 +1,118 @@
-obj/structure/closet/crate
+//This file was auto-corrected by findeclaration.exe on 25.5.2012 20:42:32
+
+/obj/structure/closet/crate
 	name = "crate"
 	desc = "A rectangular steel crate."
 	icon = 'icons/obj/storage.dmi'
 	icon_state = "crate"
 	icon_opened = "crateopen"
 	icon_closed = "crate"
-	atom_flags = ATOM_FLAG_CLIMBABLE
-	pull_sound = "pull_box"
-	setup = 0
+	climbable = TRUE
+	open_sound = "sound/items/War_UI_Inventory_Loot_Open_Lockbox_1.ogg"
+	close_sound = "sound/items/War_UI_Inventory_Loot_Open_Lockbox_2.ogg"
+//	mouse_drag_pointer = MOUSE_ACTIVE_POINTER	//???
+	var/rigged = FALSE
 
-	dremovable = 0
+// climbing crates - Kachnov
+/obj/structure/closet/crate/MouseDrop_T(mob/target, mob/user)
+	if (!opened)
+		var/mob/living/H = user
+		if (istype(H) && can_climb(H) && target == user)
+			do_climb(target)
+		else
+			return ..(target, user)
+	else
+		return ..(target, user)
 
-	storage_types = CLOSET_STORAGE_ITEMS
+/obj/structure/closet/crate/can_open()
+	return TRUE
 
-	var/points_per_crate = 5
-	var/rigged = 0
+/obj/structure/closet/crate/can_close()
+	return TRUE
 
 /obj/structure/closet/crate/open()
-	if((atom_flags & ATOM_FLAG_OPEN_CONTAINER) && !opened && can_open())
-		object_shaken()
-	. = ..()
-	if(.)
-		if(rigged)
-			visible_message("<span class='danger'>There are wires attached to the lid of [src]...</span>")
-			for(var/obj/item/device/assembly_holder/H in src)
-				H.process_activation(usr)
-			for(var/obj/item/device/assembly/A in src)
-				A.activate()
+	if (opened)
+		return FALSE
+	if (!can_open())
+		return FALSE
 
-/obj/structure/closet/crate/examine(mob/user)
-	..()
-	if(rigged && opened)
-		var/list/devices = list()
-		for(var/obj/item/device/assembly_holder/H in src)
-			devices += H
-		for(var/obj/item/device/assembly/A in src)
-			devices += A
-		to_chat(user,"There are some wires attached to the lid, connected to [english_list(devices)].")
+	playsound(loc, open_sound, 15, TRUE, -3)
+	for (var/obj/O in src)
+		O.forceMove(get_turf(src))
+	icon_state = icon_opened
+	opened = TRUE
+
+	if (climbable)
+		structure_shaken()
+	return TRUE
+
+/obj/structure/closet/crate/close()
+	if (!opened)
+		return FALSE
+	if (!can_close())
+		return FALSE
+
+	playsound(loc, close_sound, 15, TRUE, -3)
+	var/itemcount = FALSE
+	for (var/obj/O in get_turf(src))
+		if (itemcount >= storage_capacity)
+			break
+		if (O.density || O.anchored)
+			continue
+		if (istype(O, /obj/structure))
+			continue
+		O.forceMove(src)
+		itemcount++
+
+	icon_state = icon_closed
+	opened = FALSE
+	return TRUE
+
+/obj/structure/closet/crate/CanPass(atom/movable/mover, turf/target, height=0, air_group=0)
+	if (istype(mover, /obj/item/projectile))
+		return TRUE
+	return !density
 
 /obj/structure/closet/crate/attackby(obj/item/weapon/W as obj, mob/user as mob)
-	if(opened)
+	if (opened)
 		return ..()
-	else if(istype(W, /obj/item/weapon/packageWrap))
-		return
-	else if(istype(W, /obj/item/stack/cable_coil))
+	else if (istype(W, /obj/item/stack/cable_coil))
 		var/obj/item/stack/cable_coil/C = W
-		if(rigged)
-			to_chat(user, "<span class='notice'>[src] is already rigged!</span>")
+		if (rigged)
+			user << "<span class='notice'>[src] is already rigged!</span>"
 			return
 		if (C.use(1))
-			to_chat(user, "<span class='notice'>You rig [src].</span>")
-			rigged = 1
+			user  << "<span class='notice'>You rig [src].</span>"
+			rigged = TRUE
 			return
-	else if(istype(W, /obj/item/device/assembly_holder) || istype(W, /obj/item/device/assembly))
-		if(rigged)
-			to_chat(user, "<span class='notice'>You attach [W] to [src].</span>")
-			user.drop_item()
-			W.forceMove(src)
+	else if (istype(W, /obj/item/weapon/wirecutters))
+		if (rigged)
+			user  << "<span class='notice'>You cut away the wiring.</span>"
+			playsound(loc, 'sound/items/Wirecutter.ogg', 100, TRUE)
+			rigged = FALSE
 			return
-	else if(isWirecutter(W))
-		if(rigged)
-			to_chat(user, "<span class='notice'>You cut away the wiring.</span>")
-			playsound(loc, 'sound/items/Wirecutter.ogg', 100, 1)
-			rigged = 0
-			return
-	else
-		return ..()
+	else return attack_hand(user)
 
+/obj/structure/closet/crate/ex_act(severity)
+	switch(severity)
+		if (1.0)
+			for (var/obj/O in contents)
+				qdel(O)
+			qdel(src)
+			return
+		if (2.0)
+			for (var/obj/O in contents)
+				if (prob(50))
+					qdel(O)
+			qdel(src)
+			return
+		if (3.0)
+			if (prob(50))
+				qdel(src)
+			return
+		else
+	return
+/*
 /obj/structure/closet/crate/secure
 	desc = "A secure crate."
 	name = "Secure crate"
@@ -77,31 +123,101 @@ obj/structure/closet/crate
 	var/greenlight = "securecrateg"
 	var/sparks = "securecratesparks"
 	var/emag = "securecrateemag"
-	req_access = list(access_mailsorting)
+	var/broken = FALSE
+	var/locked = TRUE
 
-	setup = CLOSET_HAS_LOCK
-	locked = TRUE
-
-/obj/structure/closet/crate/secure/Initialize()
-	. = ..()
-	update_icon()
-
-/obj/structure/closet/crate/secure/update_icon()
+/obj/structure/closet/crate/secure/New()
 	..()
-	if(broken)
-		overlays += emag
-	else if(locked)
+	if (locked)
+		overlays.Cut()
 		overlays += redlight
 	else
+		overlays.Cut()
 		overlays += greenlight
 
+/obj/structure/closet/crate/secure/can_open()
+	return !locked
+
+/obj/structure/closet/crate/secure/proc/togglelock(mob/user as mob)
+	if (opened)
+		user << "<span class='notice'>Close the crate first.</span>"
+		return
+	if (broken)
+		user << "<span class='warning'>The crate appears to be broken.</span>"
+		return
+	if (allowed(user))
+		set_locked(!locked, user)
+	else
+		user << "<span class='notice'>Access Denied</span>"
+
+/obj/structure/closet/crate/secure/proc/set_locked(var/newlocked, mob/user = null)
+	if (locked == newlocked) return
+
+	locked = newlocked
+	if (user)
+		for (var/mob/O in viewers(user, 3))
+			O.show_message( "<span class='notice'>The crate has been [locked ? null : "un"]locked by [user].</span>", TRUE)
+	overlays.Cut()
+	overlays += locked ? redlight : greenlight
+
+/obj/structure/closet/crate/secure/verb/verb_togglelock()
+	set src in oview(1) // One square distance
+	set category = null
+	set name = "Toggle Lock"
+
+	if (!usr.canmove || usr.stat || usr.restrained()) // Don't use it if you're not able to! Checks for stuns, ghost and restrain
+		return
+
+	if (ishuman(usr))
+		add_fingerprint(usr)
+		togglelock(usr)
+	else
+		usr << "<span class='warning'>This mob type can't use this verb.</span>"
+
+/obj/structure/closet/crate/secure/attack_hand(mob/user as mob)
+	add_fingerprint(user)
+	if (locked)
+		togglelock(user)
+	else
+		toggle(user)
+
+/obj/structure/closet/crate/secure/attackby(obj/item/weapon/W as obj, mob/user as mob)
+	if (is_type_in_list(W, list(/obj/item/stack/cable_coil, /obj/item/weapon/wirecutters)))
+		return ..()
+	if (!opened)
+		togglelock(user)
+		return
+	return ..()
+
+/obj/structure/closet/crate/secure/emp_act(severity)
+	for (var/obj/O in src)
+		O.emp_act(severity)
+	if (!broken && !opened  && prob(50/severity))
+		if (!locked)
+			locked = TRUE
+			overlays.Cut()
+			overlays += redlight
+		else
+			overlays.Cut()
+			overlays += emag
+			overlays += sparks
+			spawn(6) overlays -= sparks //Tried lots of stuff but nothing works right. so i have to use this *sadface*
+			playsound(loc, 'sound/effects/sparks4.ogg', 75, TRUE)
+			locked = FALSE
+	if (!opened && prob(20/severity))
+		if (!locked)
+			open()
+		else
+			req_access = list()
+			req_access += pick(get_all_station_access())
+	..()
+*/
 /obj/structure/closet/crate/plastic
 	name = "plastic crate"
 	desc = "A rectangular plastic crate."
 	icon_state = "plasticcrate"
 	icon_opened = "plasticcrateopen"
 	icon_closed = "plasticcrate"
-	points_per_crate = 1
 
 /obj/structure/closet/crate/internals
 	name = "internals crate"
@@ -110,19 +226,28 @@ obj/structure/closet/crate
 	icon_opened = "o2crateopen"
 	icon_closed = "o2crate"
 
-/obj/structure/closet/crate/internals/fuel
-	name = "\improper Fuel tank crate"
-	desc = "A fuel tank crate."
-
-/obj/structure/closet/crate/internals/fuel/WillContain()
-	return list(/obj/item/weapon/tank/hydrogen = 4)
-
 /obj/structure/closet/crate/trashcart
 	name = "trash cart"
 	desc = "A heavy, metal trashcart with wheels."
 	icon_state = "trashcart"
 	icon_opened = "trashcartopen"
 	icon_closed = "trashcart"
+
+/*these aren't needed anymore
+/obj/structure/closet/crate/hat
+	desc = "A crate filled with Valuable Collector's Hats!."
+	name = "Hat Crate"
+	icon_state = "crate"
+	icon_opened = "crateopen"
+	icon_closed = "crate"
+
+/obj/structure/closet/crate/contraband
+	name = "Poster crate"
+	desc = "A random assortment of posters manufactured by providers NOT listed under Nanotrasen's whitelist."
+	icon_state = "crate"
+	icon_opened = "crateopen"
+	icon_closed = "crate"
+*/
 
 /obj/structure/closet/crate/medical
 	name = "medical crate"
@@ -138,28 +263,12 @@ obj/structure/closet/crate
 	icon_opened = "crateopen"
 	icon_closed = "crate"
 
-/obj/structure/closet/crate/rcd/WillContain()
-	return list(
-		/obj/item/weapon/rcd_ammo = 3,
-		/obj/item/weapon/rcd
-	)
-
-/obj/structure/closet/crate/solar
-	name = "solar pack crate"
-
-/obj/structure/closet/crate/solar/WillContain()
-	return list(
-		/obj/item/solar_assembly = 14,
-		/obj/item/weapon/circuitboard/solar_control,
-		/obj/item/weapon/tracker_electronics,
-		/obj/item/weapon/paper/solar
-	)
-
-/obj/structure/closet/crate/solar_assembly
-	name = "solar assembly crate"
-
-/obj/structure/closet/crate/solar_assembly/WillContain()
-	return list(/obj/item/solar_assembly = 16)
+/obj/structure/closet/crate/rcd/New()
+	..()
+//	new /obj/item/weapon/rcd_ammo(src)
+//	new /obj/item/weapon/rcd_ammo(src)
+//	new /obj/item/weapon/rcd_ammo(src)
+//	new /obj/item/weapon/rcd(src)
 
 /obj/structure/closet/crate/freezer
 	name = "freezer"
@@ -172,12 +281,12 @@ obj/structure/closet/crate
 
 	return_air()
 		var/datum/gas_mixture/gas = (..())
-		if(!gas)	return null
-		var/datum/gas_mixture/newgas = new /datum/gas_mixture()
+		if (!gas)	return null
+		var/datum/gas_mixture/newgas = new/datum/gas_mixture()
 		newgas.copy_from(gas)
-		if(newgas.temperature <= target_temp)	return
+		if (newgas.temperature <= target_temp)	return
 
-		if((newgas.temperature - cooling_power) > target_temp)
+		if ((newgas.temperature - cooling_power) > target_temp)
 			newgas.temperature -= cooling_power
 		else
 			newgas.temperature = target_temp
@@ -188,8 +297,12 @@ obj/structure/closet/crate
 	desc = "A crate of emergency rations."
 
 
-/obj/structure/closet/crate/freezer/rations/WillContain()
-	return list(/obj/item/weapon/reagent_containers/food/snacks/liquidfood = 4)
+/obj/structure/closet/crate/freezer/rations/New()
+	..()
+	new /obj/item/weapon/reagent_containers/food/snacks/liquidfood(src)
+	new /obj/item/weapon/reagent_containers/food/snacks/liquidfood(src)
+	new /obj/item/weapon/reagent_containers/food/snacks/liquidfood(src)
+	new /obj/item/weapon/reagent_containers/food/snacks/liquidfood(src)
 
 /obj/structure/closet/crate/bin
 	name = "large bin"
@@ -199,37 +312,36 @@ obj/structure/closet/crate
 	icon_closed = "largebin"
 
 /obj/structure/closet/crate/radiation
-	name = "radioactive crate"
-	desc = "A leadlined crate with a radiation sign on it."
-	icon_state = "radiation"
-	icon_opened = "radiationopen"
-	icon_closed = "radiation"
-
-/obj/structure/closet/crate/radiation_gear
 	name = "radioactive gear crate"
 	desc = "A crate with a radiation sign on it."
 	icon_state = "radiation"
 	icon_opened = "radiationopen"
 	icon_closed = "radiation"
 
-/obj/structure/closet/crate/radiation_gear/WillContain()
-	return list(/obj/item/clothing/suit/radiation = 8)
-
+/obj/structure/closet/crate/radiation/New()
+	..()
+	new /obj/item/clothing/suit/radiation(src)
+	new /obj/item/clothing/head/radiation(src)
+	new /obj/item/clothing/suit/radiation(src)
+	new /obj/item/clothing/head/radiation(src)
+	new /obj/item/clothing/suit/radiation(src)
+	new /obj/item/clothing/head/radiation(src)
+	new /obj/item/clothing/suit/radiation(src)
+	new /obj/item/clothing/head/radiation(src)
+/*
 /obj/structure/closet/crate/secure/weapon
 	name = "weapons crate"
 	desc = "A secure weapons crate."
 	icon_state = "weaponcrate"
 	icon_opened = "weaponcrateopen"
 	icon_closed = "weaponcrate"
-	req_access = list(access_security)
 
-/obj/structure/closet/crate/secure/phoron
-	name = "phoron crate"
-	desc = "A secure phoron crate."
-	icon_state = "phoroncrate"
-	icon_opened = "phoroncrateopen"
-	icon_closed = "phoroncrate"
-	req_access = list(access_medical,access_research,access_engine)
+/obj/structure/closet/crate/secure/plasma
+	name = "plasma crate"
+	desc = "A secure plasma crate."
+	icon_state = "plasmacrate"
+	icon_opened = "plasmacrateopen"
+	icon_closed = "plasmacrate"
 
 /obj/structure/closet/crate/secure/gear
 	name = "gear crate"
@@ -237,15 +349,13 @@ obj/structure/closet/crate
 	icon_state = "secgearcrate"
 	icon_opened = "secgearcrateopen"
 	icon_closed = "secgearcrate"
-	req_access = list(access_security)
 
 /obj/structure/closet/crate/secure/hydrosec
 	name = "secure hydroponics crate"
-	desc = "A crate with a lock on it, painted in the scheme of botany and botanists."
+	desc = "A crate with a lock on it, painted in the scheme of the station's botanists."
 	icon_state = "hydrosecurecrate"
 	icon_opened = "hydrosecurecrateopen"
 	icon_closed = "hydrosecurecrate"
-	req_access = list(access_mailsorting, access_hydroponics)
 
 /obj/structure/closet/crate/secure/bin
 	name = "secure bin"
@@ -257,7 +367,7 @@ obj/structure/closet/crate
 	greenlight = "largebing"
 	sparks = "largebinsparks"
 	emag = "largebinemag"
-
+*/
 /obj/structure/closet/crate/large
 	name = "large crate"
 	desc = "A hefty metal crate."
@@ -265,15 +375,18 @@ obj/structure/closet/crate
 	icon_state = "largemetal"
 	icon_opened = "largemetalopen"
 	icon_closed = "largemetal"
-	storage_capacity = 2 * MOB_LARGE
-	storage_types = CLOSET_STORAGE_ITEMS|CLOSET_STORAGE_STRUCTURES
 
-/obj/structure/closet/crate/large/hydroponics
-	icon_state = "hydro_crate_large"
-	icon_opened = "hydro_crate_large_open"
-	icon_closed = "hydro_crate_large"
-
-
+/obj/structure/closet/crate/large/close()
+	. = ..()
+	if (.)//we can hold up to one large item
+		for (var/obj/structure/S in loc)
+			if (S == src)
+				continue
+			if (!S.anchored)
+				S.forceMove(src)
+				break
+	return
+/*
 /obj/structure/closet/crate/secure/large
 	name = "large crate"
 	desc = "A hefty metal crate with an electronic locking system."
@@ -284,14 +397,23 @@ obj/structure/closet/crate
 	redlight = "largemetalr"
 	greenlight = "largemetalg"
 
-	storage_capacity = 2 * MOB_LARGE
-	storage_types = CLOSET_STORAGE_ITEMS|CLOSET_STORAGE_STRUCTURES
-
-/obj/structure/closet/crate/secure/large/phoron
-	icon_state = "phoron_crate_large"
-	icon_opened = "phoron_crate_large_open"
-	icon_closed = "phoron_crate_large"
-	req_access = list(access_mailsorting, access_medical, access_research, access_engine)
+/obj/structure/closet/crate/secure/large/close()
+	. = ..()
+	if (.)//we can hold up to one large item
+		var/found = FALSE
+		for (var/obj/structure/S in loc)
+			if (S == src)
+				continue
+			if (!S.anchored)
+				found = TRUE
+				S.forceMove(src)
+				break
+		if (!found)
+			for (var/obj/machinery/M in loc)
+				if (!M.anchored)
+					M.forceMove(src)
+					break
+	return
 
 //fluff variant
 /obj/structure/closet/crate/secure/large/reinforced
@@ -299,7 +421,7 @@ obj/structure/closet/crate
 	icon_state = "largermetal"
 	icon_opened = "largermetalopen"
 	icon_closed = "largermetal"
-
+*/
 /obj/structure/closet/crate/hydroponics
 	name = "hydroponics crate"
 	desc = "All you need to destroy those pesky weeds and pests."
@@ -307,46 +429,16 @@ obj/structure/closet/crate
 	icon_opened = "hydrocrateopen"
 	icon_closed = "hydrocrate"
 
-/obj/structure/closet/crate/hydroponics/prespawned/WillContain()
-	return list(
-		/obj/item/weapon/reagent_containers/spray/plantbgone = 2,
-		/obj/item/weapon/material/minihoe = 2,
-		/obj/item/weapon/storage/plants = 2,
-		/obj/item/weapon/material/hatchet = 2,
-		/obj/item/weapon/wirecutters/clippers = 2,
-		/obj/item/device/analyzer/plant_analyzer = 2
-	)
+/obj/structure/closet/crate/hydroponics/prespawned
+	//This exists so the prespawned hydro crates spawn with their contents.
 
-/obj/structure/closet/crate/secure/biohazard
-	name = "biohazard cart"
-	desc = "A heavy cart with extensive sealing. You shouldn't eat things you find in it."
-	icon_state = "biohazard"
-	icon_opened = "biohazardopen"
-	icon_closed = "biohazard"
-	open_sound = 'sound/items/Deconstruct.ogg'
-	close_sound = 'sound/items/Deconstruct.ogg'
-	req_access = list(access_mailsorting, access_xenobiology ,access_virology)
-	storage_types = CLOSET_STORAGE_ITEMS|CLOSET_STORAGE_MOBS
-
-/obj/structure/closet/crate/secure/biohazard/blanks/WillContain()
-	return list(/mob/living/carbon/human/blank, /obj/item/usedcryobag)
-
-/obj/structure/closet/crate/paper_refill
-	name = "paper refill crate"
-	desc = "A rectangular plastic crate, filled up with blank papers for refilling bins and printers. A bureaucrat's favorite."
-	icon_state = "plasticcrate"
-	icon_opened = "plasticcrateopen"
-	icon_closed = "plasticcrate"
-
-/obj/structure/closet/crate/paper_refill/WillContain()
-	return list(/obj/item/weapon/paper = 30)
-
-/obj/structure/closet/crate/uranium
-	name = "fissibles crate"
-	desc = "A crate with a radiation sign on it."
-	icon_state = "radiation"
-	icon_opened = "radiationopen"
-	icon_closed = "radiation"
-
-/obj/structure/closet/crate/uranium/WillContain()
-	return list(/obj/item/stack/material/uranium/ten = 5)
+	New()
+		..()
+		new /obj/item/weapon/reagent_containers/spray/plantbgone(src)
+		new /obj/item/weapon/reagent_containers/spray/plantbgone(src)
+		new /obj/item/weapon/material/minihoe(src)
+//		new /obj/item/weapon/weedspray(src)
+//		new /obj/item/weapon/weedspray(src)
+//		new /obj/item/weapon/pestspray(src)
+//		new /obj/item/weapon/pestspray(src)
+//		new /obj/item/weapon/pestspray(src)

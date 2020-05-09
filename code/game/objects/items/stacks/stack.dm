@@ -11,66 +11,54 @@
 
 /obj/item/stack
 	gender = PLURAL
-	origin_tech = list(TECH_MATERIAL = 1)
-	mod_weight = 0.75
-	mod_reach = 0.5
-	mod_handy = 0.5
+//	origin_tech = list(TECH_MATERIAL = TRUE)
 	var/list/datum/stack_recipe/recipes
 	var/singular_name
-	var/amount = 1
+	var/amount = TRUE
 	var/max_amount //also see stack recipes initialisation, param "max_res_amount" must be equal to this max_amount
 	var/stacktype //determines whether different stack types can merge
 	var/build_type = null //used when directly applied to a turf
-	var/uses_charge = 0
+	var/uses_charge = FALSE
 	var/list/charge_costs = null
 	var/list/datum/matter_synth/synths = null
-	var/craft_tool //determines what kind of tools should be used for crafting
-	var/splittable = 1 //can we split/combine the stacks?
 
-/obj/item/stack/New(loc, amount=null)
+/obj/item/stack/New(var/loc, var/_amount=0)
 	..()
 	if (!stacktype)
 		stacktype = type
-	if (amount)
-		src.amount = amount
+	if (_amount)
+		amount = _amount
+	return
 
 /obj/item/stack/Destroy()
-	if(uses_charge)
-		return 1
-	if (src && usr && usr.machine == src)
+	if (uses_charge)
+		return TRUE
+	if (src && usr && usr.using_object == src)
 		usr << browse(null, "window=stack")
 	return ..()
 
 /obj/item/stack/examine(mob/user)
-	if(..(user, 1))
-		if(!uses_charge)
-			to_chat(user, "There [src.amount == 1 ? "is" : "are"] [src.amount] [src.singular_name]\s in the stack.")
+	if (..(user, TRUE))
+		if (!uses_charge)
+			user << "There [amount == TRUE ? "is" : "are"] [amount] [singular_name]\s in the stack."
 		else
-			to_chat(user, "There is enough charge for [get_amount()].")
-	if(color)
-		to_chat(user, "It's painted.")
-	if (istype(src,/obj/item/stack/tile))
-		var/obj/item/stack/tile/T = src
-		if(length(T.stored_decals))
-			to_chat(user, "It's has painted decals on it.")
+			user << "There is enough charge for [get_amount()]."
 
 /obj/item/stack/attack_self(mob/user as mob)
-	if(uses_charge)
-		list_recipes(user)
-	return
+	list_recipes(user)
 
 /obj/item/stack/proc/list_recipes(mob/user as mob, recipes_sublist)
 	if (!recipes)
 		return
 	if (!src || get_amount() <= 0)
 		user << browse(null, "window=stack")
-	user.set_machine(src) //for correct work of onclose
+	user.set_using_object(src) //for correct work of onclose
 	var/list/recipe_list = recipes
 	if (recipes_sublist && recipe_list[recipes_sublist] && istype(recipe_list[recipes_sublist], /datum/stack_recipe_list))
 		var/datum/stack_recipe_list/srl = recipe_list[recipes_sublist]
 		recipe_list = srl.recipes
-	var/t1 = text("<HTML><HEAD><title>Constructions from []</title></HEAD><body><TT>Amount Left: []<br>", src, src.get_amount())
-	for(var/i=1;i<=recipe_list.len,i++)
+	var/t1 = text("<HTML><HEAD><title>Constructions from []</title></HEAD><body><TT>Amount Left: []<br>", src, get_amount())
+	for (var/i=1;i<=recipe_list.len,i++)
 		var/E = recipe_list[i]
 		if (isnull(E))
 			t1 += "<hr>"
@@ -85,15 +73,15 @@
 
 		if (istype(E, /datum/stack_recipe))
 			var/datum/stack_recipe/R = E
-			var/max_multiplier = round(src.get_amount() / R.req_amount)
-			var/title
-			var/can_build = 1
+			var/max_multiplier = round(get_amount() / R.req_amount)
+			var/title as text
+			var/can_build = TRUE
 			can_build = can_build && (max_multiplier>0)
 			if (R.res_amount>1)
 				title+= "[R.res_amount]x [R.title]\s"
 			else
 				title+= "[R.title]"
-			title+= " ([R.req_amount] [src.singular_name]\s)"
+			title+= " ([R.req_amount] [singular_name]\s)"
 			if (can_build)
 				t1 += text("<A href='?src=\ref[src];sublist=[recipes_sublist];make=[i];multiplier=1'>[title]</A>  ")
 			else
@@ -114,88 +102,176 @@
 	onclose(user, "stack")
 	return
 
-/obj/item/stack/proc/produce_recipe(datum/stack_recipe/recipe, quantity, mob/user)
+/mob/var/can_build_recipe = TRUE
+/obj/item/stack/proc/produce_recipe(datum/stack_recipe/recipe, var/quantity, mob/user)
 	var/required = quantity*recipe.req_amount
 	var/produced = min(quantity*recipe.res_amount, recipe.max_res_amount)
+	var/atom/movable/build_override_object = null
 
-	if(!uses_charge)
-		switch(craft_tool)
-			if(1)
-				if(!user.get_active_hand() || ((!user:get_active_hand().sharp) && (!user:get_active_hand().edge)))
-					to_chat(user, "<span class='warning'>You need something sharp to construct \the [recipe.title]!</span>")
-					return
-			if(2)
-				if(!isWelder(user.get_active_hand()))
-					to_chat(user, "<span class='warning'>You need a welding tool to construct \the [recipe.title]!</span>")
-					return
+	if (findtext(recipe.title, "locked") && findtext(recipe.title, "door") && !findtext(recipe.title, "unlocked"))
 
-	var/obj/item/weapon/weldingtool/WT
-	if(!uses_charge && craft_tool == 2)
-		WT = user.get_active_hand()
+		var/material = null
+		if (findtext(recipe.title, "wood"))
+			material = "wood"
+
+		if (!ishuman(user))
+			return
+
+		var/mob/living/carbon/human/H = user
+		if (!istype(H.l_hand, /obj/item/weapon/key) && !istype(H.r_hand, /obj/item/weapon/key))
+			user << "<span class = 'warning'>You need to have a key in one of your hands to make a locked door.</span>"
+			return
+
+		var/obj/item/weapon/key = H.l_hand
+		if (!key || !istype(key))
+			key = H.r_hand
+		if (!key || !istype(key))
+			return // should never happen
+
+		var/texttype = "[key.type]"
+		var/uniquepart = replacetext(texttype, "/obj/item/weapon/key/", "")
+		var/doorbasepath = "/obj/structure/simple_door/key_door/"
+		var/doorpath = text2path("[doorbasepath][uniquepart]")
+		build_override_object = new doorpath(null, material)
 
 	if (!can_use(required))
 		if (produced>1)
-			to_chat(user, "<span class='warning'>You haven't got enough [src] to build \the [produced] [recipe.title]\s!</span>")
+			user << "<span class='warning'>You haven't got enough [src] to build \the [produced] [recipe.title]\s!</span>"
 		else
-			to_chat(user, "<span class='warning'>You haven't got enough [src] to build \the [recipe.title]!</span>")
+			user << "<span class='warning'>You haven't got enough [src] to build \the [recipe.title]!</span>"
 		return
 
-	if (recipe.one_per_turf)
-		if (istype(src.loc,/turf) && locate(recipe.result_type) in src.loc)
-			to_chat(user, "<span class='warning'>There is another [recipe.title] here!</span>")
-			return
-		else if (locate(recipe.result_type) in user.loc)
-			to_chat(user, "<span class='warning'>There is another [recipe.title] here!</span>")
-			return
+	if (recipe.one_per_turf && (locate(recipe.result_type) in user.loc))
+		user << "<span class='warning'>There is another [recipe.title] here!</span>"
+		return
 
 	if (recipe.on_floor && !isfloor(user.loc))
-		if (istype(src.loc,/turf) && !isfloor(src.loc))
-			to_chat(user, "<span class='warning'>\The [recipe.title] must be constructed on the floor!</span>")
-			return
-		else if (!isfloor(user.loc))
-			to_chat(user, "<span class='warning'>\The [recipe.title] must be constructed on the floor!</span>")
-			return
+		user << "<span class='warning'>\The [recipe.title] must be constructed on the floor!</span>"
+		return
 
-	if((WT && WT.remove_fuel(0, user)) || uses_charge || craft_tool == 1)
+	var/mob/living/carbon/human/H = null
+	if (ishuman(user))
+		H = user
 
-		if (recipe.time)
-			to_chat(user, "<span class='notice'>Building [recipe.title] ...</span>")
-			if (!do_after(user, recipe.time))
+	if (ispath(recipe.result_type, /obj/structure))
+		if (!ispath(recipe.result_type, /obj/structure/noose))
+			for (var/obj/structure/multiz/M in get_turf(H))
+				H << "<span class = 'danger'>You can't build a structure here.</span>"
 				return
 
-		if (use(required))
-			var/atom/O
-			if(recipe.use_material)
-				if(istype(src.loc,/turf))
-					O = new recipe.result_type(src.loc, recipe.use_material)
-				else
-					O = new recipe.result_type(user.loc, recipe.use_material)
-			else
-				if(istype(src.loc,/turf))
-					O = new recipe.result_type(src.loc)
-				else
-					O = new recipe.result_type(user.loc)
-			O.set_dir(user.dir)
-			O.add_fingerprint(user)
+	if (recipe.result_type == /obj/structure/noose)
+		var/structurecheck = 0
 
-			if (recipe.goes_in_hands && !recipe.on_floor)
-				user.put_in_hands(O)
+		for (var/obj/structure/structure in get_turf(H))
+			if ((structure.density && !structure.low) || istype(structure, /obj/structure/bed))
+				if (!(structure.flags & ON_BORDER))
+					structurecheck = 2
+			else if (structurecheck == 0)
+				structurecheck = 1
+		if (structurecheck != 2)
+			for (var/obj/item/weapon/stool/stool in get_turf(H))
+				structurecheck = 2
 
-			if (istype(O, /obj/item/stack))
-				var/obj/item/stack/S = O
-				S.amount = produced
-				S.add_to_stacks(user, recipe.goes_in_hands)
+		var/area/H_area = get_area(H)
+
+		if (structurecheck == 0)
+			H << "<span class = 'warning'>You need to be on a structure to make a noose.</span>"
+			return
+		else if (structurecheck == 1)
+			H << "<span class = 'warning'>This structure is not suitable for standing on.</span>"
+			return
+
+		if (H_area.location == AREA_OUTSIDE)
+
+			var/turf/north = get_step(H, NORTH)
+
+			var/structurecheck2 = FALSE
+			if (north)
+				for (var/obj/structure/S in north)
+					if (S.density)
+						structurecheck2 = TRUE
+						break
+
+			if (!structurecheck2 && !north.density)
+				H << "<span class = 'warning'>You need a ceiling to make a noose.</span>"
+				return
+
+	else if (recipe.result_type == /obj/structure/barbwire)
+		if (locate(/obj/structure/barbwire) in get_turf(H))
+			return
+		if (H)
+			if (H.original_job)
+				var/area/H_area = get_area(H)
+				if (H_area.location == AREA_INSIDE)
+					if (H.original_job.base_type_flag() == GERMAN)
+						if (istype(H_area, /area/prishtina/german))
+							user << "<span class = 'warning'>This isn't a great place for barbwire.</span>"
+							return
+					else if (H.original_job.base_type_flag() == SOVIET)
+						if (istype(H_area, /area/prishtina/soviet))
+							user << "<span class = 'warning'>This isn't a great place for barbwire.</span>"
+							return
+
+	else if (engineer_exclusive_recipe_types.Find(recipe.result_type))
+		if (H)
+			if (H.getStatCoeff("engineering") < GET_MIN_STAT_COEFF(STAT_VERY_HIGH))
+				H << "<span class = 'notice'>You have no idea of how to build this.</span>"
+				return
+
+	if (recipe.time)
+		var/buildtime = recipe.time * 2
+		if (H)
+			buildtime /= H.getStatCoeff("strength")
+			buildtime /= (H.getStatCoeff("engineering") * H.getStatCoeff("engineering"))
+
+		buildtime = round(buildtime)
+
+		user << "<span class='notice'>Building [recipe.title] ...</span>"
+		if (!do_after(user, buildtime))
+			return
+
+		if (H)
+			H.adaptStat("engineering", 1*recipe.req_amount)
+
+	if (use(required))
+		var/atom/O
+		if (recipe.use_material)
+			O = new recipe.result_type(user.loc, recipe.use_material)
+		else
+			O = new recipe.result_type(user.loc)
+
+		if (build_override_object)
+			build_override_object.loc = get_turf(O)
+			build_override_object.set_dir(user.dir)
+			build_override_object.add_fingerprint(user)
+			qdel(O)
+			return
+
+		O.set_dir(user.dir)
+		O.add_fingerprint(user)
+
+		if (istype(O, /obj/item/stack))
+			var/obj/item/stack/S = O
+			S.amount = produced
+			S.add_to_stacks(user)
+
+		if (istype(O, /obj/item/weapon/storage)) //BubbleWrap - so newly formed boxes are empty
+			for (var/obj/item/I in O)
+				qdel(I)
 
 /obj/item/stack/Topic(href, href_list)
 	..()
-	if (usr.restrained() || usr.stat || !in_range(usr, src))
+	if ((usr.restrained() || usr.stat || usr.get_active_hand() != src))
 		return
 
 	if (href_list["sublist"] && !href_list["make"])
 		list_recipes(usr, text2num(href_list["sublist"]))
 
 	if (href_list["make"])
-		if (src.get_amount() < 1) qdel(src) //Never should happen
+
+		if (get_amount() < 1)
+			qdel(src)
+			return
 
 		var/list/recipes_list = recipes
 		if (href_list["sublist"])
@@ -207,51 +283,56 @@
 		if (!multiplier || (multiplier <= 0)) //href exploit protection
 			return
 
-		src.produce_recipe(R, multiplier, usr)
+		if (ishuman(usr))
+			var/mob/living/carbon/human/H = usr
+			if (H.can_build_recipe)
+				H.can_build_recipe = FALSE
+				produce_recipe(R, multiplier, usr)
+				H.can_build_recipe = TRUE
 
-	if (src && usr.machine==src) //do not reopen closed window
-		spawn( 0 )
-			src.interact(usr)
+	if (src && usr.using_object == src) //do not reopen closed window
+		spawn( FALSE )
+			interact(usr)
 			return
 	return
 
-//Return 1 if an immediate subsequent call to use() would succeed.
+//Return TRUE if an immediate subsequent call to use() would succeed.
 //Ensures that code dealing with stacks uses the same logic
-/obj/item/stack/proc/can_use(used)
+/obj/item/stack/proc/can_use(var/used)
 	if (get_amount() < used)
-		return 0
-	return 1
+		return FALSE
+	return TRUE
 
-/obj/item/stack/proc/use(used)
+/obj/item/stack/proc/use(var/used)
 	if (!can_use(used))
-		return 0
-	if(!uses_charge)
+		return FALSE
+	if (!uses_charge)
 		amount -= used
 		if (amount <= 0)
-			if(usr)
+			if (usr)
 				usr.remove_from_mob(src)
 			qdel(src) //should be safe to qdel immediately since if someone is still using this stack it will persist for a little while longer
-		return 1
+		return TRUE
 	else
-		if(get_amount() < used)
-			return 0
-		for(var/i = 1 to charge_costs.len)
+		if (get_amount() < used)
+			return FALSE
+		for (var/i = TRUE to charge_costs.len)
 			var/datum/matter_synth/S = synths[i]
 			S.use_charge(charge_costs[i] * used) // Doesn't need to be deleted
-		return 1
-	return 0
+		return TRUE
+	return FALSE
 
-/obj/item/stack/proc/add(extra)
-	if(!uses_charge)
-		if(amount + extra > get_max_amount())
-			return 0
+/obj/item/stack/proc/add(var/extra)
+	if (!uses_charge)
+		if (amount + extra > get_max_amount())
+			return FALSE
 		else
 			amount += extra
-		return 1
-	else if(!synths || synths.len < uses_charge)
-		return 0
+		return TRUE
+	else if (!synths || synths.len < uses_charge)
+		return FALSE
 	else
-		for(var/i = 1 to uses_charge)
+		for (var/i = TRUE to uses_charge)
 			var/datum/matter_synth/S = synths[i]
 			S.add_charge(charge_costs[i] * extra)
 
@@ -262,176 +343,108 @@
 */
 
 //attempts to transfer amount to S, and returns the amount actually transferred
-/obj/item/stack/proc/transfer_to(obj/item/stack/S, tamount=null, type_verified)
+/obj/item/stack/proc/transfer_to(obj/item/stack/S, var/tamount=null, var/type_verified)
 	if (!get_amount())
-		return 0
+		return FALSE
 	if ((stacktype != S.stacktype) && !type_verified)
-		return 0
+		return FALSE
 	if (isnull(tamount))
-		tamount = src.get_amount()
-	if (color != S.color)
-		return 0
-	if (istype(S,/obj/item/stack/tile) && istype(src,/obj/item/stack/tile))
-		var/obj/item/stack/tile/FT = src
-		var/obj/item/stack/tile/F = S
-		if (FT.stored_decals)
-			FT.stored_decals = null
-		if (F.stored_decals)
-			F.stored_decals = null
-		S.overlays.Cut()	//cuts off decal status icon applied in /turf/simulated/floor/proc/make_plating()
+		tamount = get_amount()
 
-	var/transfer = max(min(tamount, src.get_amount(), (S.get_max_amount() - S.get_amount())), 0)
+	var/transfer = max(min(tamount, get_amount(), (S.get_max_amount() - S.get_amount())), FALSE)
 
-	var/orig_amount = src.get_amount()
-	if (transfer && src.use(transfer))
+	var/orig_amount = get_amount()
+	if (transfer && use(transfer))
 		S.add(transfer)
 		if (prob(transfer/orig_amount * 100))
 			transfer_fingerprints_to(S)
-			if(blood_DNA)
+			if (blood_DNA)
 				S.blood_DNA |= blood_DNA
 		return transfer
-	return 0
+	return FALSE
 
 //creates a new stack with the specified amount
-/obj/item/stack/proc/split(tamount, force=FALSE)
+/obj/item/stack/proc/split(var/tamount)
 	if (!amount)
 		return null
-	if(uses_charge && !force)
+	if (uses_charge)
 		return null
 
-	var/transfer = max(min(tamount, src.amount, initial(max_amount)), 0)
+	var/transfer = max(min(tamount, amount, initial(max_amount)), FALSE)
 
-	var/orig_amount = src.amount
-	if (transfer && src.use(transfer))
-		var/obj/item/stack/newstack = new src.type(loc, transfer)
+	var/orig_amount = amount
+	if (transfer && use(transfer))
+		var/obj/item/stack/newstack = new type(loc, transfer)
 		newstack.color = color
 		if (prob(transfer/orig_amount * 100))
 			transfer_fingerprints_to(newstack)
-			if(blood_DNA)
+			if (blood_DNA)
 				newstack.blood_DNA |= blood_DNA
 		return newstack
 	return null
 
 /obj/item/stack/proc/get_amount()
-	if(uses_charge)
-		if(!synths || synths.len < uses_charge)
-			return 0
+	if (uses_charge)
+		if (!synths || synths.len < uses_charge)
+			return FALSE
 		var/datum/matter_synth/S = synths[1]
 		. = round(S.get_charge() / charge_costs[1])
-		if(charge_costs.len > 1)
-			for(var/i = 2 to charge_costs.len)
+		if (charge_costs.len > 1)
+			for (var/i = 2 to charge_costs.len)
 				S = synths[i]
 				. = min(., round(S.get_charge() / charge_costs[i]))
 		return
 	return amount
 
 /obj/item/stack/proc/get_max_amount()
-	if(uses_charge)
-		if(!synths || synths.len < uses_charge)
-			return 0
+	if (uses_charge)
+		if (!synths || synths.len < uses_charge)
+			return FALSE
 		var/datum/matter_synth/S = synths[1]
 		. = round(S.max_energy / charge_costs[1])
-		if(uses_charge > 1)
-			for(var/i = 2 to uses_charge)
+		if (uses_charge > 1)
+			for (var/i = 2 to uses_charge)
 				S = synths[i]
 				. = min(., round(S.max_energy / charge_costs[i]))
 		return
 	return max_amount
 
-/obj/item/stack/proc/add_to_stacks(mob/user, check_hands)
-	var/list/stacks = list()
-	if(check_hands)
-		if(isstack(user.l_hand))
-			stacks += user.l_hand
-		if(isstack(user.r_hand))
-			stacks += user.r_hand
+/obj/item/stack/proc/add_to_stacks(mob/user as mob)
 	for (var/obj/item/stack/item in user.loc)
-		stacks += item
-	for (var/obj/item/stack/item in stacks)
 		if (item==src)
 			continue
-		var/transfer = src.transfer_to(item)
+		var/transfer = transfer_to(item)
 		if (transfer)
-			to_chat(user, "<span class='notice'>You add a new [item.singular_name] to the stack. It now contains [item.amount] [item.singular_name]\s.</span>")
-		if(!amount)
+			user << "<span class='notice'>You add a new [item.singular_name] to the stack. It now contains [item.amount] [item.singular_name]\s.</span>"
+		if (!amount)
 			break
 
-/obj/item/stack/get_storage_cost()	//Scales storage cost to stack size
-	. = ..()
-	if (amount < max_amount)
-		. = ceil(. * amount / max_amount)
-
 /obj/item/stack/attack_hand(mob/user as mob)
-	if((user.get_inactive_hand() == src) && splittable)
-		var/N = input("How many stacks of [src] would you like to split off?", "Split stacks", 1) as num|null
-		if(N)
-			var/obj/item/stack/F = src.split(N)
-			if (F)
-				user.put_in_hands(F)
-				src.add_fingerprint(user)
-				F.add_fingerprint(user)
-				spawn(0)
-					if (src && usr.machine==src)
-						src.interact(usr)
+	if (user.get_inactive_hand() == src)
+		var/obj/item/stack/F = split(1)
+		if (F)
+			user.put_in_hands(F)
+			add_fingerprint(user)
+			F.add_fingerprint(user)
+			spawn(0)
+				if (src && usr.using_object == src)
+					interact(usr)
 	else
 		..()
 	return
 
 /obj/item/stack/attackby(obj/item/W as obj, mob/user as mob)
-	if(istype(W, /obj/item/stack) && splittable)
+	if (istype(W, /obj/item/stack))
 		var/obj/item/stack/S = W
-		src.transfer_to(S)
+		if (user.get_inactive_hand()==src)
+			transfer_to(S, TRUE)
+		else
+			transfer_to(S)
 
 		spawn(0) //give the stacks a chance to delete themselves if necessary
-			if (S && usr.machine==S)
+			if (S && usr.using_object == S)
 				S.interact(usr)
-			if (src && usr.machine==src)
-				src.interact(usr)
-	//else if(!uses_charge)
-	//	if(isWelder(W))
-	//	list_recipes(user)
-	else if(!uses_charge)
-		switch(craft_tool)
-			if(1)
-				if(W.sharp || W.edge) list_recipes(user)
-			if(2)
-				if(isWelder(W)) list_recipes(user)
+			if (src && usr.using_object == src)
+				interact(usr)
 	else
 		return ..()
-
-/*
- * Recipe datum
- */
-/datum/stack_recipe
-	var/title = "ERROR"
-	var/result_type
-	var/req_amount = 1 //amount of material needed for this recipe
-	var/res_amount = 1 //amount of stuff that is produced in one batch (e.g. 4 for floor tiles)
-	var/max_res_amount = 1
-	var/time = 10
-	var/one_per_turf = 0
-	var/on_floor = 0
-	var/use_material
-	var/goes_in_hands = 1
-
-	New(title, result_type, req_amount = 1, res_amount = 1, max_res_amount = 1, time = 10, one_per_turf = 0, on_floor = 0, supplied_material = null, goes_in_hands = 1)
-		src.title = title
-		src.result_type = result_type
-		src.req_amount = req_amount
-		src.res_amount = res_amount
-		src.max_res_amount = max_res_amount
-		src.time = time
-		src.one_per_turf = one_per_turf
-		src.on_floor = on_floor
-		src.use_material = supplied_material
-		src.goes_in_hands = goes_in_hands
-
-/*
- * Recipe list datum
- */
-/datum/stack_recipe_list
-	var/title = "ERROR"
-	var/list/recipes = null
-	New(title, recipes)
-		src.title = title
-		src.recipes = recipes

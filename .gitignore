@@ -1,33 +1,14 @@
-#ignore misc BYOND files
-Thumbs.db
-*.log
-*.int
-*.rsc
+# BYOND specific ignores
+# Based on .gitignores from other SS13 codebases
+
 *.dmb
+*.rsc
+*.int
 *.lk
-*.backup
-*.before
-*.db
-*.db-*
-data/
-cfg/
-# ignore config, but not subdirs
-config/*
-!config/example/
-!config/warnings_templates/
-build_log.txt
-use_map
-stopserver
-reboot_called
-atupdate
-__pycache__
+*.log
 
+data/*
+SQL/*
+serverdata.txt
 
-sql/test_db
-
-# vscode specific files
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+sharedinfo/_closed.txt

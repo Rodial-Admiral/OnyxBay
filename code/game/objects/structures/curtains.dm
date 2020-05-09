@@ -1,37 +1,43 @@
+// 2017-07-06: Defeated the curtain man meme (they were unanchored) -- Irra
+
 /obj/structure/curtain
 	name = "curtain"
 	icon = 'icons/obj/curtain.dmi'
 	icon_state = "closed"
-	layer = BASE_ABOVE_OBJ_LAYER
-	opacity = 1
-	density = 0
+	layer = MOB_LAYER + 0.03 // above new windows
+	anchored = TRUE
+	opacity = TRUE
+	density = FALSE
 
 /obj/structure/curtain/open
 	icon_state = "open"
-
-	layer = ABOVE_HUMAN_LAYER
-	opacity = 0
+	opacity = FALSE
 
 /obj/structure/curtain/bullet_act(obj/item/projectile/P, def_zone)
-	if(!P.nodamage)
+	if (!P.nodamage)
 		visible_message("<span class='warning'>[P] tears [src] down!</span>")
 		qdel(src)
 	else
 		..(P, def_zone)
 
 /obj/structure/curtain/attack_hand(mob/user)
-	playsound(get_turf(loc), "searching_clothes", 15, 1, -5)
+	playsound(get_turf(loc), "rustle", 50, TRUE, -5)
 	toggle()
 	..()
 
 /obj/structure/curtain/proc/toggle()
-	set_opacity(!opacity)
-	if(opacity)
+	opacity = !opacity
+	if (opacity)
 		icon_state = "closed"
-
 	else
 		icon_state = "open"
-		layer = ABOVE_OBJ_LAYER
+	for (var/atom/movable/lighting_overlay/L in view(world.view*3, src))
+		L.update_overlay(TRUE)
+
+/obj/structure/curtain/Destroy()
+	for (var/atom/movable/lighting_overlay/L in view(world.view*3, src))
+		L.update_overlay(TRUE)
+	..()
 
 /obj/structure/curtain/black
 	name = "black curtain"
@@ -39,7 +45,7 @@
 
 /obj/structure/curtain/medical
 	name = "plastic curtain"
-	color = "#b8f5e3"
+	color = "#B8F5E3"
 	alpha = 200
 
 /obj/structure/curtain/open/bed
@@ -48,15 +54,18 @@
 
 /obj/structure/curtain/open/privacy
 	name = "privacy curtain"
-	color = "#b8f5e3"
+	color = "#B8F5E3"
 
 /obj/structure/curtain/open/shower
 	name = "shower curtain"
-	color = "#acd1e9"
+	color = "#ACD1E9"
 	alpha = 200
 
 /obj/structure/curtain/open/shower/engineering
-	color = "#ffa500"
+	color = "#FFA500"
 
 /obj/structure/curtain/open/shower/security
-	color = "#aa0000"
+	color = "#AA0000"
+
+#undef SHOWER_OPEN_LAYER
+#undef SHOWER_CLOSED_LAYER

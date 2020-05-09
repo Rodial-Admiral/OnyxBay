@@ -1,44 +1,81 @@
+/mob/var/lastgib = -1
+
 //This is the proc for gibbing a mob. Cannot gib ghosts.
 //added different sort of gibs and animations. N
 /mob/proc/gib(anim="gibbed-m",do_gibs)
-	if(status_flags & GODMODE)
-		return
-	death(1)
-	transforming = 1
-	canmove = 0
-	icon = null
-	set_invisibility(101)
-	update_canmove()
-	remove_from_dead_mob_list()
+	// should prevent spam-gibbing that causes immense lag - Kachnov
+	if (lastgib == -1 || world.time - lastgib > 10)
 
-	var/atom/movable/overlay/animation = null
-	animation = new(loc)
-	animation.icon_state = "blank"
-	animation.icon = 'icons/mob/mob.dmi'
-	animation.master = src
-	playsound(src, "gib", 75, 1)
+		if (ishuman(src))
+			emote("scream")
 
-	flick(anim, animation)
-	if(do_gibs) gibs(loc, dna)
+		lastgib = world.time
+		death(1)
+		transforming = TRUE
+		canmove = FALSE
+		icon = null
+		invisibility = 101
+		update_canmove()
+		dead_mob_list -= src
 
-	addtimer(CALLBACK(src, .proc/check_delete, animation), 15)
+		var/atom/movable/overlay/animation = null
+		animation = new(loc)
+		animation.icon_state = "blank"
+		animation.icon = 'icons/mob/mob.dmi'
+		animation.master = src
 
-/mob/proc/check_delete(atom/movable/overlay/animation)
-	if(animation)	qdel(animation)
-	if(src)			qdel(src)
+		flick(anim, animation)
+		if (do_gibs) gibs(loc)
 
+		spawn(15)
+			if (animation)	qdel(animation)
+			if (src)			qdel(src)
+
+// gibbing, but without organ or item dropping
+/mob/proc/crush(anim="gibbed-m",do_gibs)
+	if (lastgib == -1 || world.time - lastgib > 10)
+
+		if (ishuman(src))
+			emote("scream")
+
+		lastgib = world.time
+		death(1)
+		transforming = TRUE
+		canmove = FALSE
+		icon = null
+		invisibility = 101
+		update_canmove()
+		dead_mob_list -= src
+
+		var/atom/movable/overlay/animation = null
+		animation = new(loc)
+		animation.icon_state = "blank"
+		animation.icon = 'icons/mob/mob.dmi'
+		animation.master = src
+
+		flick(anim, animation)
+		if (do_gibs) gibs(loc)
+
+		// I couldn't find the gib sound, so I'm using this instead
+		// - Kachnov
+		playsound(loc, 'sound/effects/splat.ogg', 100)
+
+		spawn(15)
+			if (animation)	qdel(animation)
+			if (src)			qdel(src)
+
+/mob/proc/maim()
+	crush()
 //This is the proc for turning a mob into ash. Mostly a copy of gib code (above).
 //Originally created for wizard disintegrate. I've removed the virus code since it's irrelevant here.
 //Dusting robots does not eject the MMI, so it's a bit more powerful than gib() /N
 /mob/proc/dust(anim="dust-m",remains=/obj/effect/decal/cleanable/ash)
-	if(status_flags & GODMODE)
-		return
 	death(1)
 	var/atom/movable/overlay/animation = null
-	transforming = 1
-	canmove = 0
+	transforming = TRUE
+	canmove = FALSE
 	icon = null
-	set_invisibility(101)
+	invisibility = 101
 
 	animation = new(loc)
 	animation.icon_state = "blank"
@@ -48,53 +85,53 @@
 	flick(anim, animation)
 	new remains(loc)
 
-	remove_from_dead_mob_list()
-	addtimer(CALLBACK(src, .proc/check_delete, animation), 15)
+	dead_mob_list -= src
+	spawn(15)
+		if (animation)	qdel(animation)
+		if (src)			qdel(src)
 
 
-/mob/proc/death(gibbed,deathmessage="seizes up and falls limp...", show_dead_message = "You have died.")
+/mob/proc/death(gibbed,deathmessage="seizes up and falls limp...")
 
-	if(stat == DEAD)
-		return 0
+	if (stat == DEAD)
+		return FALSE
 
 	facing_dir = null
 
-	if(!gibbed && deathmessage != "no message") // This is gross, but reliable. Only brains use it.
-		src.visible_message("<b>\The [src.name]</b> [deathmessage]")
+	stat = DEAD
 
-	set_stat(DEAD)
-	reset_plane_and_layer()
 	update_canmove()
 
-	dizziness = 0
-	jitteriness = 0
+	dizziness = FALSE
+	jitteriness = FALSE
+	canmove = 1
 
-	set_sight(sight|SEE_TURFS|SEE_MOBS|SEE_OBJS)
-	set_see_in_dark(8)
-	set_see_invisible(SEE_INVISIBLE_LEVEL_TWO)
+	layer = MOB_LAYER
 
-	verbs += /mob/living/proc/ghost
+	sight |= SEE_TURFS|SEE_MOBS|SEE_OBJS
+	see_in_dark = 8
+	see_invisible = SEE_INVISIBLE_LEVEL_TWO
 
 	drop_r_hand()
 	drop_l_hand()
 
-	//TODO:  Change death state to health_dead for all these icon files.  This is a stop gap.
-
-	if(healths)
-		healths.overlays = null // This is specific to humans but the relevant code is here; shouldn't mess with other mobs.
-		if("health7" in icon_states(healths.icon))
-			healths.icon_state = "health7"
-		else
-			healths.icon_state = "health6"
-			log_debug("[src] ([src.type]) died but does not have a valid health7 icon_state (using health6 instead). report this error to Ccomp5950 or your nearest Developer")
+	if (istype(src,/mob/living))
+		var/mob/living/L = src
+		if (L.HUDneed.Find("health"))
+			var/obj/screen/health/H = L.HUDneed["health"]
+			H.icon_state = "health7"
 
 	timeofdeath = world.time
-	if(mind) mind.store_memory("Time of death: [stationtime2text()]", 0)
-	switch_from_living_to_dead_mob_list()
+	if (mind) mind.store_memory("Time of death: [stationtime2text()]", FALSE)
+	living_mob_list -= src
+	dead_mob_list |= src
 
-	update_icon()
+	updateicon()
+/*
+	if (ticker && ticker.mode)
+		ticker.mode.check_win()*/
 
-	if(SSticker.mode)
-		SSticker.mode.check_win()
-	to_chat(src,"<span class='deadsay'>[show_dead_message]</span>")
-	return 1
+	if (client)
+		ghostize()
+
+	return TRUE

@@ -1,140 +1,113 @@
-/var/total_lighting_overlays = 0
-/atom/movable/lighting_overlay
-	name = ""
-	mouse_opacity = 0
-	simulated = 0
-	anchored = 1
-	icon = LIGHTING_ICON
-	plane = LIGHTING_PLANE
-	layer = LIGHTING_LAYER
-	invisibility = INVISIBILITY_LIGHTING
-	color = LIGHTING_BASE_MATRIX
-	icon_state = "light1"
-	blend_mode = BLEND_MULTIPLY
+/var/list/lighting_update_overlays  = list()    // List of lighting overlays queued for update.
 
-	var/lum_r = 0
-	var/lum_g = 0
-	var/lum_b = 0
+/atom/movable/lighting_overlay
+	name             = ""
+
+	icon             = 'icons/effects/icon.png'
+	color            = LIGHTING_BASE_MATRIX
+
+	mouse_opacity    = FALSE
+	plane			= LIGHTING_PLANE
+	layer            = LIGHTING_LAYER
+	invisibility     = INVISIBILITY_LIGHTING
+
+	simulated = FALSE
+	anchored = TRUE
+	flags = NOREACT
+
+	blend_mode       = BLEND_MULTIPLY
 
 	var/needs_update = FALSE
 
-/atom/movable/lighting_overlay/Initialize()
-	// doesn't need special init
-	atom_flags |= ATOM_FLAG_INITIALIZED
-	return INITIALIZE_HINT_NORMAL
+	var/TOD = "Midday"
 
-/atom/movable/lighting_overlay/New(atom/loc, no_update = FALSE)
-	var/turf/T = loc //If this runtimes atleast we'll know what's creating overlays outside of turfs.
-	if(T.dynamic_lighting)
-		. = ..()
-		verbs.Cut()
-		total_lighting_overlays++
+/atom/movable/lighting_overlay/pre_bullet_act(var/obj/item/projectile/P)
+	return FALSE
 
-		T.lighting_overlay = src
-		T.luminosity = 0
-		if(no_update)
-			return
-		update_overlay()
-	else
-		qdel(src)
+/atom/movable/lighting_overlay/New(var/atom/loc, var/no_update = FALSE)
+	. = ..()
+	verbs.Cut()
 
-/atom/movable/lighting_overlay/proc/update_overlay()
-	set waitfor = FALSE
-	var/turf/T = loc
+	var/turf/T         = loc // If this runtimes atleast we'll know what's creating overlays in things that aren't turfs.
+	T.lighting_overlay = src
+	T.luminosity       = FALSE
 
-	if(!istype(T))
-		if(loc)
-			log_debug("A lighting overlay realised its loc was NOT a turf (actual loc: [loc][loc ? ", " + loc.type : "null"]) in update_overlay() and got qdel'ed!")
-		else
-			log_debug("A lighting overlay realised it was in nullspace in update_overlay() and got pooled!")
-		qdel(src)
-		return
-	if(!T.dynamic_lighting)
-		qdel(src)
+	if (no_update)
 		return
 
-	// To the future coder who sees this and thinks
-	// "Why didn't he just use a loop?"
-	// Well my man, it's because the loop performed like shit.
-	// And there's no way to improve it because
-	// without a loop you can make the list all at once which is the fastest you're gonna get.
-	// Oh it's also shorter line wise.
-	// Including with these comments.
+	update_overlay()
 
-	// See LIGHTING_CORNER_DIAGONAL in lighting_corner.dm for why these values are what they are.
-	// No I seriously cannot think of a more efficient method, fuck off Comic.
-	var/datum/lighting_corner/cr = T.corners[3] || dummy_lighting_corner
-	var/datum/lighting_corner/cg = T.corners[2] || dummy_lighting_corner
-	var/datum/lighting_corner/cb = T.corners[4] || dummy_lighting_corner
-	var/datum/lighting_corner/ca = T.corners[1] || dummy_lighting_corner
+	// so observers can actually see things
+	if (!ticker || ticker.current_state == GAME_STATE_PREGAME)
+		invisibility = 100
 
-	var/max = max(cr.cache_mx, cg.cache_mx, cb.cache_mx, ca.cache_mx)
-
-	var/rr = cr.cache_r
-	var/rg = cr.cache_g
-	var/rb = cr.cache_b
-
-	var/gr = cg.cache_r
-	var/gg = cg.cache_g
-	var/gb = cg.cache_b
-
-	var/br = cb.cache_r
-	var/bg = cb.cache_g
-	var/bb = cb.cache_b
-
-	var/ar = ca.cache_r
-	var/ag = ca.cache_g
-	var/ab = ca.cache_b
-
-	#if LIGHTING_SOFT_THRESHOLD != 0
-	var/set_luminosity = max > LIGHTING_SOFT_THRESHOLD
-	#else
-	// Because of floating points, it won't even be a flat 0.
-	// This number is mostly arbitrary.
-	var/set_luminosity = max > 1e-6
-	#endif
-
-	if((rr & gr & br & ar) && (rg + gg + bg + ag + rb + gb + bb + ab == 8))
-	//anything that passes the first case is very likely to pass the second, and addition is a little faster in this case
-		icon_state = "transparent"
-		color = null
-	else if(!set_luminosity)
-		icon_state = LIGHTING_ICON_STATE_DARK
-		color = null
-	else
-		icon_state = null
-		color = list(
-			rr, rg, rb, 00,
-			gr, gg, gb, 00,
-			br, bg, bb, 00,
-			ar, ag, ab, 00,
-			00, 00, 00, 01
-		)
-
-	luminosity = set_luminosity
-
-// Variety of overrides so the overlays don't get affected by weird things.
-/atom/movable/lighting_overlay/ex_act()
-	return
-
-/atom/movable/lighting_overlay/singularity_pull()
-	return
+	lighting_overlay_list += src
 
 /atom/movable/lighting_overlay/Destroy()
-	total_lighting_overlays--
-	SSlighting.overlay_queue -= src
-
-	var/turf/T = loc
-	if(istype(T))
+	var/turf/T   = loc
+	if (istype(T))
 		T.lighting_overlay = null
 
-	. = ..()
+		T.luminosity = TRUE
 
-/atom/movable/lighting_overlay/forceMove()
-	return 0 //should never move
+	lighting_update_overlays -= src
 
-/atom/movable/lighting_overlay/Move()
-	return 0
+	..()
 
-/atom/movable/lighting_overlay/throw_at()
-	return 0
+/atom/movable/lighting_overlay/Destroy()
+	lighting_overlay_list -= src
+	..()
+
+/atom/movable/lighting_overlay/proc/update_overlay(var/force_window_coeff_updates = FALSE)
+	var/turf/T = loc
+	if (!T || !istype(T)) // Erm...
+		if (loc)
+			warning("A lighting overlay realised its loc was NOT a turf (actual loc: [loc], [loc.type]) in update_overlay() and got pooled!")
+
+		else
+			warning("A lighting overlay realised it was in nullspace in update_overlay() and got pooled!")
+
+		qdel(src)
+		return
+
+	if (force_window_coeff_updates)
+		T.calculate_window_coeff()
+	//	T.next_calculate_window_coeff = world.time + 300
+
+	blend_mode = BLEND_MULTIPLY
+
+	var/list/L = copylist(color)
+	if (!islist(L))
+		L = list()
+
+	var/anylums = FALSE
+
+	for (var/datum/lighting_corner/C in T.corners)
+		var/i = 0
+
+		// Huge switch to determine i based on D.
+		switch(turn(C.masters[T], 180))
+			if (NORTHEAST)
+				i = AR
+
+			if (SOUTHEAST)
+				i = GR
+
+			if (SOUTHWEST)
+				i = RR
+
+			if (NORTHWEST)
+				i = BR
+
+		var/mx = max(C.getLumR(T), C.getLumG(T), C.getLumB(T)) // Scale it so 1 is the strongest lum, if it is above 1.
+		anylums += mx
+		. = 1.0 // factor
+		if (mx > 1)
+			. = 1.0 / mx
+
+		L[i + 0]   = C.getLumR(T) * .
+		L[i + 1]   = C.getLumG(T) * .
+		L[i + 2]   = C.getLumB(T) * .
+
+	color  = L
+	luminosity = (anylums > 0)

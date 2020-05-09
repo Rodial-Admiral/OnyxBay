@@ -1,98 +1,90 @@
-/obj/item/device/transfer_valve
+/obj/item/transfer_valve
 	name = "tank transfer valve"
-	desc = "A small, versatile valve with dual-headed heat-resistant pipes. This mechanism is the standard size for coupling with portable gas tanks."
-	description_info = "This machine is used to merge the contents of two different gas tanks. Plug the tanks into the transfer, then open the valve to mix them together. You can also attach various assembly devices to trigger this process."
-	description_antag = "With a tank of hot phoron and cold oxygen, this benign little atmospheric device becomes an incredibly deadly bomb. You don't want to be anywhere near it when it goes off."
+	desc = "Regulates the transfer of air between two tanks"
 	icon = 'icons/obj/assemblies.dmi'
 	icon_state = "valve_1"
 	var/obj/item/weapon/tank/tank_one
 	var/obj/item/weapon/tank/tank_two
-	var/obj/item/device/attached_device
+	var/obj/item/attached_device
 	var/mob/attacher = null
-	var/valve_open = 0
-	var/toggle = 1
+	var/valve_open = FALSE
+	var/toggle = TRUE
+	flags = PROXMOVE
 
-/obj/item/device/transfer_valve/proc/process_activation(obj/item/device/D)
+/obj/item/transfer_valve/proc/process_activation(var/obj/item/D)
 
-/obj/item/device/transfer_valve/IsAssemblyHolder()
-	return 1
+/obj/item/transfer_valve/IsAssemblyHolder()
+	return TRUE
 
-/obj/item/device/transfer_valve/attackby(obj/item/item, mob/user)
-	// Interdict assembly in storages
-	if (!isturf(loc) && !ismob(loc))
-		to_chat(user, "<span class='warning'>There is not enough space to do assembly.</span>")
-		return
-
+/obj/item/transfer_valve/attackby(obj/item/item, mob/user)
 	var/turf/location = get_turf(src) // For admin logs
 	if(istype(item, /obj/item/weapon/tank))
-
-		var/T1_weight = 0
-		var/T2_weight = 0
 		if(tank_one && tank_two)
-			to_chat(user, "<span class='warning'>There are already two tanks attached, remove one first.</span>")
+			user << "<span class='warning'>There are already two tanks attached, remove one first.</span>"
 			return
 
-		user.drop_item()
-		item.forceMove(src)
 		if(!tank_one)
 			tank_one = item
-		else
+			user.drop_item()
+			item.loc = src
+			user << "<span class='notice'>You attach the tank to the transfer valve.</span>"
+		else if(!tank_two)
 			tank_two = item
+			user.drop_item()
+			item.loc = src
+			user << "<span class='notice'>You attach the tank to the transfer valve.</span>"
 			message_admins("[key_name_admin(user)] attached both tanks to a transfer valve. (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[location.x];Y=[location.y];Z=[location.z]'>JMP</a>)")
 			log_game("[key_name_admin(user)] attached both tanks to a transfer valve.")
-		to_chat(user, "<span class='notice'>You attach the tank to the transfer valve.</span>")
-
-		T1_weight = tank_one.w_class
-		if(tank_two)
-			T2_weight = tank_two.w_class
-
-		src.w_class = max(initial(src.w_class),T1_weight,T2_weight) //gets w_class of biggest object, because you shouldn't be able to just shove tanks in and have them be tiny.
 
 		update_icon()
-
-		SSnano.update_uis(src) // update all UIs attached to src
+		nanomanager.update_uis(src) // update all UIs attached to src
 //TODO: Have this take an assemblyholder
 	else if(isassembly(item))
-		var/obj/item/device/assembly/A = item
+		var/obj/item/assembly/A = item
 		if(A.secured)
-			to_chat(user, "<span class='notice'>The device is secured.</span>")
+			user << "<span class='notice'>The device is secured.</span>"
 			return
 		if(attached_device)
-			to_chat(user, "<span class='warning'>There is already an device attached to the valve, remove it first.</span>")
+			user << "<span class='warning'>There is already an device attached to the valve, remove it first.</span>"
 			return
-		if(A.proximity_monitor)
-			A.proximity_monitor.SetHost(src, A)
 		user.remove_from_mob(item)
 		attached_device = A
-		A.forceMove(src)
-		to_chat(user, "<span class='notice'>You attach the [item] to the valve controls and secure it.</span>")
+		A.loc = src
+		user << "<span class='notice'>You attach the [item] to the valve controls and secure it.</span>"
 		A.holder = src
 		A.toggle_secure()	//this calls update_icon(), which calls update_icon() on the holder (i.e. the bomb).
 
-		GLOB.bombers += "[key_name(user)] attached a [item] to a transfer valve."
+		bombers += "[key_name(user)] attached a [item] to a transfer valve."
 		message_admins("[key_name_admin(user)] attached a [item] to a transfer valve. (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[location.x];Y=[location.y];Z=[location.z]'>JMP</a>)")
 		log_game("[key_name_admin(user)] attached a [item] to a transfer valve.")
 		attacher = user
-		SSnano.update_uis(src) // update all UIs attached to src
+		nanomanager.update_uis(src) // update all UIs attached to src
 	return
 
-/obj/item/device/transfer_valve/attack_self(mob/user as mob)
+
+/obj/item/transfer_valve/HasProximity(atom/movable/AM as mob|obj)
+	if(!attached_device)	return
+	attached_device.HasProximity(AM)
+	return
+
+
+/obj/item/transfer_valve/attack_self(mob/user as mob)
 	ui_interact(user)
 
-/obj/item/device/transfer_valve/ui_interact(mob/user, ui_key = "main", datum/nanoui/ui = null, force_open = 1)
+/obj/item/transfer_valve/ui_interact(mob/user, ui_key = "main", var/datum/nanoui/ui = null, var/force_open = TRUE)
 
 	// this is the data which will be sent to the ui
 	var/data[0]
 	data["attachmentOne"] = tank_one ? tank_one.name : null
 	data["attachmentTwo"] = tank_two ? tank_two.name : null
 	data["valveAttachment"] = attached_device ? attached_device.name : null
-	data["valveOpen"] = valve_open ? 1 : 0
+	data["valveOpen"] = valve_open ? TRUE : FALSE
 
 	// update the ui if it exists, returns null if no ui is passed/found
-	ui = SSnano.try_update_ui(user, src, ui_key, ui, data, force_open)
+	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
 		// the ui does not exist, so we'll create a new() one
-		// for a list of parameters and their descriptions see the code docs in \code\modules\nano\nanoui.dm
+        // for a list of parameters and their descriptions see the code docs in \code\modules\nano\nanoui.dm
 		ui = new(user, src, ui_key, "transfer_valve.tmpl", "Tank Transfer Valve", 460, 280)
 		// when the ui is first opened this is the data it will use
 		ui.set_initial_data(data)
@@ -101,12 +93,12 @@
 		// auto update every Master Controller tick
 		//ui.set_auto_update(1)
 
-/obj/item/device/transfer_valve/Topic(href, href_list)
+/obj/item/transfer_valve/Topic(href, href_list)
 	..()
 	if ( usr.stat || usr.restrained() )
-		return 0
-	if (src.loc != usr)
-		return 0
+		return FALSE
+	if (loc != usr)
+		return FALSE
 	if(tank_one && href_list["tankone"])
 		remove_tank(tank_one)
 	else if(tank_two && href_list["tanktwo"])
@@ -115,26 +107,23 @@
 		toggle_valve()
 	else if(attached_device)
 		if(href_list["rem_device"])
-			if(attached_device.proximity_monitor)
-				attached_device.proximity_monitor.SetHost(attached_device, attached_device)
-			if(istype(attached_device, /obj/item/device/assembly))
-				var/obj/item/device/assembly/A = attached_device
-				A.holder = null
 			attached_device.loc = get_turf(src)
+			attached_device:holder = null
 			attached_device = null
 			update_icon()
 		if(href_list["device"])
 			attached_device.attack_self(usr)
-	return 1 // Returning 1 sends an update to attached UIs
+	add_fingerprint(usr)
+	return TRUE // Returning TRUE sends an update to attached UIs
 
-/obj/item/device/transfer_valve/process_activation(obj/item/device/D)
+/obj/item/transfer_valve/process_activation(var/obj/item/D)
 	if(toggle)
-		toggle = 0
+		toggle = FALSE
 		toggle_valve()
 		spawn(50) // To stop a signal being spammed from a proxy sensor constantly going off or whatever
-			toggle = 1
+			toggle = TRUE
 
-/obj/item/device/transfer_valve/update_icon()
+/obj/item/transfer_valve/update_icon()
 	overlays.Cut()
 	underlays = null
 
@@ -152,7 +141,7 @@
 	if(attached_device)
 		overlays += "device"
 
-/obj/item/device/transfer_valve/proc/remove_tank(obj/item/weapon/tank/T)
+/obj/item/transfer_valve/proc/remove_tank(obj/item/weapon/tank/T)
 	if(tank_one == T)
 		split_gases()
 		tank_one = null
@@ -162,26 +151,25 @@
 	else
 		return
 
-	if(!tank_one && !tank_two) src.w_class = initial(src.w_class) //returns it to just the transfer valve size
-	T.dropInto(loc)
+	T.loc = get_turf(src)
 	update_icon()
 
-/obj/item/device/transfer_valve/proc/merge_gases()
+/obj/item/transfer_valve/proc/merge_gases()
 	if(valve_open)
 		return
 	tank_two.air_contents.volume += tank_one.air_contents.volume
 	var/datum/gas_mixture/temp
 	temp = tank_one.air_contents.remove_ratio(1)
 	tank_two.air_contents.merge(temp)
-	valve_open = 1
+	valve_open = TRUE
 
-/obj/item/device/transfer_valve/proc/split_gases()
+/obj/item/transfer_valve/proc/split_gases()
 	if(!valve_open)
 		return
 
-	valve_open = 0
+	valve_open = FALSE
 
-	if(QDELETED(tank_one) || QDELETED(tank_two))
+	if(deleted(tank_one) || deleted(tank_two))
 		return
 
 	var/ratio1 = tank_one.air_contents.volume/tank_two.air_contents.volume
@@ -196,7 +184,7 @@
 	it explodes properly when it gets a signal (and it does).
 	*/
 
-/obj/item/device/transfer_valve/proc/toggle_valve()
+/obj/item/transfer_valve/proc/toggle_valve()
 	if(!valve_open && (tank_one && tank_two))
 		var/turf/bombturf = get_turf(src)
 		var/area/A = get_area(bombturf)
@@ -213,23 +201,23 @@
 		if(attacher)
 			log_str += "(<A HREF='?_src_=holder;adminmoreinfo=\ref[attacher]'>?</A>)"
 
-		var/mob/mob = get_mob_by_key(src.fingerprintslast)
+		var/mob/mob = get_mob_by_key(fingerprintslast)
 		var/last_touch_info = ""
 		if(mob)
 			last_touch_info = "(<A HREF='?_src_=holder;adminmoreinfo=\ref[mob]'>?</A>)"
 
-		log_str += " Last touched by: [src.fingerprintslast][last_touch_info]"
-		GLOB.bombers += log_str
-		message_admins(log_str, 0, 1)
+		log_str += " Last touched by: [fingerprintslast][last_touch_info]"
+		bombers += log_str
+		message_admins(log_str, FALSE, TRUE)
 		log_game(log_str)
 		merge_gases()
 
 	else if(valve_open==1 && (tank_one && tank_two))
 		split_gases()
 
-	src.update_icon()
+	update_icon()
 
 // this doesn't do anything but the timer etc. expects it to be here
 // eventually maybe have it update icon to show state (timer, prox etc.) like old bombs
-/obj/item/device/transfer_valve/proc/c_state()
+/obj/item/transfer_valve/proc/c_state()
 	return

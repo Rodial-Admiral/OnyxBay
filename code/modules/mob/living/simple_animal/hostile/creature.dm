@@ -6,21 +6,30 @@
 	icon_state = "otherthing"
 	icon_living = "otherthing"
 	icon_dead = "otherthing-dead"
-	health = 100
-	maxHealth = 100
-	melee_damage_lower = 15
-	melee_damage_upper = 25
+	health = 80
+	maxHealth = 80
+	melee_damage_lower = 25
+	melee_damage_upper = 50
 	attacktext = "chomped"
 	attack_sound = 'sound/weapons/bite.ogg'
 	faction = "creature"
 	speed = 4
-	supernatural = 1
 
 /mob/living/simple_animal/hostile/creature/cult
 	faction = "cult"
-	min_gas = null
-	max_gas = null
-	minbodytemp = 0
 
-/mob/living/simple_animal/hostile/creature/cult/cultify()
-	return
+	min_oxy = FALSE
+	max_oxy = FALSE
+	min_tox = FALSE
+	max_tox = FALSE
+	min_co2 = FALSE
+	max_co2 = FALSE
+	min_n2 = FALSE
+	max_n2 = FALSE
+	minbodytemp = FALSE
+
+	supernatural = TRUE
+
+/mob/living/simple_animal/hostile/creature/cult/Life()
+	..()
+	check_horde()

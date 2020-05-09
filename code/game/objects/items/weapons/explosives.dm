@@ -5,84 +5,134 @@
 	icon = 'icons/obj/assemblies.dmi'
 	icon_state = "plastic-explosive0"
 	item_state = "plasticx"
-	item_flags = ITEM_FLAG_NO_BLUDGEON
-	w_class = ITEM_SIZE_SMALL
-	origin_tech = list(TECH_ILLEGAL = 2)
+	flags = NOBLUDGEON
+	w_class = 2.0
+//	origin_tech = list(TECH_ILLEGAL = 2)
 	var/datum/wires/explosive/c4/wires = null
 	var/timer = 10
 	var/atom/target = null
-	var/open_panel = 0
+	var/large = FALSE
+	var/open_panel = FALSE
 	var/image_overlay = null
 
-/obj/item/weapon/plastique/New()
-	wires = new(src)
-	image_overlay = image('icons/obj/assemblies.dmi', "plastic-explosive2")
-	..()
+//obj/item/weapon/plastique/New()
+//	wires = new(src)
+	//image_overlay = image('icons/obj/assemblies.dmi', "plastic-explosive2")
+	//..()
 
 /obj/item/weapon/plastique/Destroy()
-	qdel(wires)
-	wires = null
+//	qdel(wires)
+//	wires = null
 	return ..()
 
-/obj/item/weapon/plastique/attackby(obj/item/I, mob/user)
-	if(isScrewdriver(I))
+/obj/item/weapon/plastique/attackby(var/obj/item/I, var/mob/user)
+	if (istype(I, /obj/item/weapon/screwdriver))
 		open_panel = !open_panel
-		to_chat(user, "<span class='notice'>You [open_panel ? "open" : "close"] the wire panel.</span>")
-	else if(isWirecutter(I) || isMultitool(I) || istype(I, /obj/item/device/assembly/signaler ))
-		wires.Interact(user)
+		user << "<span class='notice'>You [open_panel ? "open" : "close"] the wire panel.</span>"
+/*	else if (istype(I, /obj/item/weapon/wirecutters) /*|| istype(I, /obj/item/multitool)*/)
+		wires.Interact(user)*/
 	else
 		..()
 
 /obj/item/weapon/plastique/attack_self(mob/user as mob)
-	var/newtime = input(usr, "Please set the timer.", "Timer", 10) as num
-	if(user.get_active_hand() == src)
-		newtime = Clamp(newtime, 10, 60000)
+	var/newtime = WWinput(usr, "Please set the timer.", "Timer", 5, "num")
+	if (user.get_active_hand() == src)
+		newtime = Clamp(newtime, 3, 60000)
 		timer = newtime
-		to_chat(user, "Timer set for [timer] seconds.")
+		user << "Timer set for [timer] seconds."
 
 /obj/item/weapon/plastique/afterattack(atom/movable/target, mob/user, flag)
 	if (!flag)
 		return
-	if (istype(target, /turf/unsimulated) || istype(target, /turf/simulated/shuttle) || istype(target, /obj/item/weapon/storage/) || istype(target, /obj/item/clothing/accessory/storage/) || istype(target, /obj/item/clothing/under))
+
+	if (istype(target, /obj/item/weapon/storage) || istype(target, /obj/item/clothing/accessory/storage) || istype(target, /obj/item/clothing/under))
 		return
-	to_chat(user, "Planting explosives...")
+
+	user << "Planting explosives..."
 	user.do_attack_animation(target)
 
-	if(do_after(user, 50, target) && in_range(user, target))
+	if (do_after(user, 50, target) && in_range(user, target))
 		user.drop_item()
-		src.target = target
-		forceMove(null)
+		target = target
+		loc = null
 
 		if (ismob(target))
-			admin_attack_log(user, target, "Planted \a [src] with a [timer] second fuse.", "Had \a [src] with a [timer] second fuse planted on them.", "planted \a [src] with a [timer] second fuse on")
+			add_logs(user, target, "planted [name] on")
 			user.visible_message("<span class='danger'>[user.name] finished planting an explosive on [target.name]!</span>")
-			log_game("[key_name(user)] planted [src.name] on [key_name(target)] with [timer] second fuse")
+			message_admins("[key_name(user, user.client)](<A HREF='?_src_=holder;adminmoreinfo=\ref[user]'>?</A>) planted [name] on [key_name(target)](<A HREF='?_src_=holder;adminmoreinfo=\ref[target]'>?</A>) with [timer] second fuse",0,1)
+			log_game("[key_name(user)] planted [name] on [key_name(target)] with [timer] second fuse")
 
 		else
-			log_and_message_admins("planted \a [src] with a [timer] second fuse on \the [target].")
+			message_admins("[key_name(user, user.client)](<A HREF='?_src_=holder;adminmoreinfo=\ref[user]'>?</A>) planted [name] on [target.name] at ([target.x],[target.y],[target.z] - <A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[target.x];Y=[target.y];Z=[target.z]'>JMP</a>) with [timer] second fuse",0,1)
+			log_game("[key_name(user)] planted [name] on [target.name] at ([target.x],[target.y],[target.z]) with [timer] second fuse")
 
 		target.overlays += image_overlay
-		to_chat(user, "Bomb has been planted. Timer counting down from [timer].")
+		user << "Bomb has been planted. Timer counting down from [timer]."
 		spawn(timer*10)
 			explode(get_turf(target))
 
-/obj/item/weapon/plastique/proc/explode(location)
-	if(!target)
-		target = get_atom_on_turf(src)
-	if(!target)
-		target = src
-	if(location)
-		explosion(location, -1, 1, 2, 5)
+/obj/item/weapon/plastique/proc/explode(var/turf/location)
+	var/original_mobs = list()
+	var/original_objs = list()
 
-	if(target)
-		if (istype(target, /turf/simulated/wall))
-			var/turf/simulated/wall/W = target
-			W.ChangeTurf(/turf/simulated/floor/plating)
+	if (location)
+		if (large)
+			explosion(location, 2, 3, 4, 4)
 		else
-			target.ex_act(1)
-	if(target)
-		target.overlays -= image_overlay
+			explosion(location, 0, 0, 2, 3)
+		for (var/mob/living/L in location.contents)
+			original_mobs += L
+			if (L.client)
+				L.canmove = FALSE
+		for (var/obj/O in location.contents)
+			original_objs += O
+		playsound(location, "explosion", 100, TRUE)
+		spawn (1)
+			for (var/mob/living/L in original_mobs)
+				if (L)
+					L.maim()
+					if (L)
+						L.overlays -= image_overlay
+						L.canmove = TRUE
+			for (var/obj/O in original_objs)
+				if (O)
+					O.overlays -= image_overlay
+					O.ex_act(1.0)
+			location.overlays -= image_overlay
+			location.ex_act(1.0)
 	qdel(src)
+
+/obj/item/weapon/plastique/bullet_act(var/obj/item/projectile/proj)
+	if (proj && !proj.nodamage)
+		return explode(get_turf(src))
 
 /obj/item/weapon/plastique/attack(mob/M as mob, mob/user as mob, def_zone)
 	return
+
+/obj/item/weapon/plastique/german
+	name = "Satchel Charge"
+	desc = "Placed to bust through walls."
+	icon_state = "german_charge"
+
+/obj/item/weapon/plastique/german/New()
+	image_overlay = image('icons/obj/assemblies.dmi', "german_charge_placed")
+	..()
+
+/obj/item/weapon/plastique/russian
+	name = "Satchel Charge"
+	desc = "Placed to bust through walls."
+	icon_state = "russian_charge"
+
+/obj/item/weapon/plastique/russian/New()
+	image_overlay = image('icons/obj/assemblies.dmi', "russian_charge_placed")
+	..()
+
+/obj/item/weapon/plastique/largerussian
+	name = "Large Satchel Charge"
+	desc = "Placed to bust through walls."
+	icon_state = "russian_charge_large"
+	large = TRUE
+
+/obj/item/weapon/plastique/russian/New()
+	image_overlay = image('icons/obj/assemblies.dmi', "russian_charge_large_placed")
+	..()

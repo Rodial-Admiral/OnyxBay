@@ -20,7 +20,6 @@ a img {border:none;}
 .imagedel {background-image:url(image-minus.png)}
 .spellcheck {background-image:url(spell-check.png)}
 .experiment {background-image:url(burn-exclamation.png)}
-.balance {background-image:url(scales.png)}
 .maptweak {background-image:url(map-pencil.png)}
 .sansserif {font-size:12px;}
 .commit {
@@ -41,30 +40,7 @@ a img {border:none;}
 	padding:2px 0;
 	font-size:1em;
 	font-weight:bold;
-}
-.date_huge {
-	margin:10px 0;
-	color:red;
-	border-bottom:2px solid #00f;
-	width:80%;
-	padding:2px 0;
-	font-size:1.2em;
-	font-weight:bold;
-}
-.merge {
-	padding: 10px;
-	background-color: #EEEEEE;
-	border-style: solid;
-	border-width: thin;
-	margin:0;
-	font-size:0.9em;
-}
-.mergeAuthor {
-	background-color: #EEEEEE;
-	margin:0;
-	font-weight:bold;
-	font-size:1.2em;
-}
+}	
 .author {
 	padding-left:10px;
 	margin:0;

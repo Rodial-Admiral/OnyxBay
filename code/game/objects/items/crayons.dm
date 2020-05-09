@@ -1,150 +1,106 @@
 /obj/item/weapon/pen/crayon/red
 	icon_state = "crayonred"
-	colour = "#da0000"
-	shadeColour = "#810c0c"
+	colour = "#DA0000"
+	shadeColour = "#810C0C"
 	colourName = "red"
-	color_description = "red crayon"
 
 /obj/item/weapon/pen/crayon/orange
 	icon_state = "crayonorange"
-	colour = "#ff9300"
-	shadeColour = "#a55403"
+	colour = "#FF9300"
+	shadeColour = "#A55403"
 	colourName = "orange"
-	color_description = "orange crayon"
 
 /obj/item/weapon/pen/crayon/yellow
 	icon_state = "crayonyellow"
-	colour = "#fff200"
+	colour = "#FFF200"
 	shadeColour = "#886422"
 	colourName = "yellow"
-	color_description = "yellow crayon"
 
 /obj/item/weapon/pen/crayon/green
 	icon_state = "crayongreen"
-	colour = "#a8e61d"
-	shadeColour = "#61840f"
+	colour = "#A8E61D"
+	shadeColour = "#61840F"
 	colourName = "green"
-	color_description = "green crayon"
 
 /obj/item/weapon/pen/crayon/blue
 	icon_state = "crayonblue"
-	colour = "#00b7ef"
-	shadeColour = "#0082a8"
+	colour = "#00B7EF"
+	shadeColour = "#0082A8"
 	colourName = "blue"
-	color_description = "blue crayon"
 
 /obj/item/weapon/pen/crayon/purple
 	icon_state = "crayonpurple"
-	colour = "#da00ff"
-	shadeColour = "#810cff"
+	colour = "#DA00FF"
+	shadeColour = "#810CFF"
 	colourName = "purple"
-	color_description = "purple crayon"
-
-/obj/item/weapon/pen/crayon/chalk
-	icon_state = "chalk"
-	colour = "#ffffff"
-	shadeColour = "#f2f2f2"
-	colourName = "white"
-	color_description = "white chalk"
-
-	New()
-		..()
-		name = "white chalk"
-		desc = "A piece of regular white chalk. What else did you expect to see?"
-
-/obj/item/weapon/pen/crayon/random/Initialize()
-	..()
-	var/crayon_type = pick(subtypesof(/obj/item/weapon/pen/crayon) - /obj/item/weapon/pen/crayon/random)
-	new crayon_type(loc)
-	return INITIALIZE_HINT_QDEL
 
 /obj/item/weapon/pen/crayon/mime
 	icon_state = "crayonmime"
 	desc = "A very sad-looking crayon."
-	colour = "#ffffff"
+	colour = "#FFFFFF"
 	shadeColour = "#000000"
 	colourName = "mime"
-	color_description = "white crayon"
-	uses = 0
+	uses = FALSE
 
 /obj/item/weapon/pen/crayon/mime/attack_self(mob/living/user as mob) //inversion
-	if(colour != "#ffffff" && shadeColour != "#000000")
-		colour = "#ffffff"
+	if (colour != "#FFFFFF" && shadeColour != "#000000")
+		colour = "#FFFFFF"
 		shadeColour = "#000000"
-		to_chat(user, "You will now draw in white and black with this crayon.")
+		user << "You will now draw in white and black with this crayon."
 	else
 		colour = "#000000"
-		shadeColour = "#ffffff"
-		to_chat(user, "You will now draw in black and white with this crayon.")
+		shadeColour = "#FFFFFF"
+		user << "You will now draw in black and white with this crayon."
 	return
 
 /obj/item/weapon/pen/crayon/rainbow
 	icon_state = "crayonrainbow"
-	colour = "#fff000"
-	shadeColour = "#000fff"
+	colour = "#FFF000"
+	shadeColour = "#000FFF"
 	colourName = "rainbow"
-	color_description = "rainbow crayon"
-	uses = 0
+	uses = FALSE
 
 /obj/item/weapon/pen/crayon/rainbow/attack_self(mob/living/user as mob)
-	colour = input(user, "Please select the main colour.", "Crayon colour") as color
-	shadeColour = input(user, "Please select the shade colour.", "Crayon colour") as color
+	colour = WWinput(user, "Please select the main colour.", "Crayon color", null, "color")
+	shadeColour = WWinput(user, "Please select the shade colour.", "Crayon color", null, "color")
 	return
 
 /obj/item/weapon/pen/crayon/afterattack(atom/target, mob/user as mob, proximity)
-	if(!proximity) return
-	if(istype(target,/turf/simulated/floor) || istype(target,/turf/simulated/wall))
-		var/drawtype = input("Choose what you'd like to draw.", "Crayon scribbles") in list("graffiti","rune","letter","arrow")
+	if (!proximity) return
+	if (istype(target,/turf/floor))
+		var/scribbles = list("graffiti","rune","letter","arrow")
+		var/drawtype = WWinput(user, "Choose what you'd like to draw.", "Crayon scribbles", scribbles[1], scribbles)
 		switch(drawtype)
-			if("letter")
-				drawtype = input("Choose the letter.", "Crayon scribbles") in list("a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z")
-				to_chat(user, "You start drawing a letter on the [target.name].")
-			if("graffiti")
-				drawtype = input("Choose the graffiti.", "Crayon scribbles") in list("amyjon","face","matt",
-																					"revolution","engie","guy",
-																					"end","dwarf","uboa", "xyu",
-																					"stayhigh","fuckxenos","help",
-																					"cheesy", "ghost", "godleft",
-																					)
-				to_chat(user, "You start drawing graffiti on the [target.name].")
-			if("rune")
-				to_chat(user, "You start drawing a rune on the [target.name].")
-			if("arrow")
-				drawtype = input("Choose the arrow.", "Crayon scribbles") in list("left", "right", "up", "down")
-				to_chat(user, "You start drawing an arrow on the [target.name].")
-		if(!in_range(user, target))
-			to_chat(user, "<span class = 'notice'>You must stay close to your drawing if you want to draw something.</span>")
-			return
-		if(instant || do_after(user, 50))
+			if ("letter")
+				drawtype = WWinput(user, "Choose the letter.", "Crayon scribbles", alphabet_lowercase[1], alphabet_lowercase)
+				user << "You start drawing a letter on the [target.name]."
+			if ("graffiti")
+				user << "You start drawing graffiti on the [target.name]."
+			if ("rune")
+				user << "You start drawing a rune on the [target.name]."
+			if ("arrow")
+				drawtype = WWinput(user, "Choose the arrow.", "Crayon scribbles", "left", list("left", "right", "up", "down"))
+				user << "You start drawing an arrow on the [target.name]."
+		if (instant || do_after(user, 50))
 			new /obj/effect/decal/cleanable/crayon(target,colour,shadeColour,drawtype)
-			to_chat(user, "You finish drawing.")
+			user << "You finish drawing."
 			target.add_fingerprint(user)		// Adds their fingerprints to the floor the crayon is drawn on.
-			if(uses)
+			if (uses)
 				uses--
-				if(!uses)
-					to_chat(user, "<span class='warning'>You used up your crayon!</span>")
+				if (!uses)
+					user << "<span class='warning'>You used up your crayon!</span>"
 					qdel(src)
 	return
 
 /obj/item/weapon/pen/crayon/attack(mob/living/carbon/M as mob, mob/user as mob)
-	if(istype(M) && M == user)
-		to_chat(M, "You take a bite of the [src.name] and swallow it.")
+	if (istype(M) && M == user)
+		M << "You take a bite of the crayon and swallow it."
 		M.nutrition += 1
-		M.reagents.add_reagent(/datum/reagent/crayon_dust,min(5,uses)/3)
-		if(uses)
+		M.reagents.add_reagent("crayon_dust",min(5,uses)/3)
+		if (uses)
 			uses -= 5
-			if(uses <= 0)
-				to_chat(M, "<span class='warning'>You ate your [src.name]!</span>")
+			if (uses <= 0)
+				M << "<span class='warning'>You ate your crayon!</span>"
 				qdel(src)
-	else if(istype(M,/mob/living/carbon/human) && M.lying)
-		to_chat(user, "You start outlining [M.name].")
-		if(do_after(user, 50))
-			to_chat(user, "You finish outlining [M.name].")
-			new /obj/effect/decal/cleanable/crayon(M.loc,colour,shadeColour,"body outline")
-			if(uses)
-				uses--
-				if(!uses)
-					to_chat(user, "<span class='warning'>You used up your [src.name]!</span>")
-					qdel(src)
 	else
 		..()

@@ -1,108 +1,82 @@
-/*
-	List generation helpers
-*/
-/proc/get_filtered_areas(list/predicates = list(/proc/is_area_with_turf))
-	. = list()
-	if(!predicates)
-		return
-	if(!islist(predicates))
-		predicates = list(predicates)
-	for(var/area/A)
-		if(all_predicates_true(list(A), predicates))
-			. += A
+//Takes: Area type as text string or as typepath OR an instance of the area.
+//Returns: A list of all turfs in areas of that type in the world.
+/proc/get_area_turfs(var/areatype, var/list/predicates)
+	if (!areatype) return null
+	else if (istext(areatype)) areatype = text2path(areatype)
+	else if (isarea(areatype))
+		var/area/areatemp = areatype
+		areatype = areatemp.type
 
-/proc/get_area_turfs(area/A, list/predicates)
-	. = new /list()
-	A = istype(A) ? A : locate(A)
-	if(!A)
-		return
-	for(var/turf/T in A.contents)
-		if(!predicates || all_predicates_true(list(T), predicates))
-			. += T
+	var/list/turfs = list()
+	for (var/area/A in area_list)
+		if (istype(A, areatype))
+			for (var/turf/T in A.contents)
+				if (!predicates || all_predicates_true(list(T), predicates))
+					turfs += T
+	return turfs
 
-/proc/get_subarea_turfs(area/A, list/predicates)
-	. = new /list()
-	A = istype(A) ? A.type : A
-	if(!A)
-		return
-	for(var/sub_area_type in typesof(A))
-		var/area/sub_area = locate(sub_area_type)
-		for(var/turf/T in sub_area.contents)
-			if(!predicates || all_predicates_true(list(T), predicates))
-				. += T
-
-/proc/group_areas_by_name(list/predicates)
-	. = list()
-	for(var/area/A in get_filtered_areas(predicates))
-		group_by(., A.name, A)
-
-/proc/group_areas_by_z_level(list/predicates)
-	. = list()
-	for(var/area/A in get_filtered_areas(predicates))
-		group_by(., num2text(A.z), A)
-
-/*
-	Pick helpers
-*/
-/proc/pick_subarea_turf(areatype, list/predicates)
-	var/list/turfs = get_subarea_turfs(areatype, predicates)
-	if(turfs && turfs.len)
-		return pick(turfs)
-
-/proc/pick_area_turf(areatype, list/predicates)
+/proc/pick_area_turf(var/areatype, var/list/predicates)
 	var/list/turfs = get_area_turfs(areatype, predicates)
-	if(turfs && turfs.len)
+	if (turfs && turfs.len)
 		return pick(turfs)
 
-/proc/pick_area(list/predicates)
-	var/list/areas = get_filtered_areas(predicates)
-	if(areas && areas.len)
-		. = pick(areas)
+/proc/get_area_width(var/area/a) //takes an actual area or a type
+	var/list/turfs = get_area_turfs(a)
+	var/maxDistX = FALSE
 
-/proc/pick_area_and_turf(list/area_predicates, list/turf_predicates)
-	var/area/A = pick_area(area_predicates)
-	if(!A)
-		return
-	return pick_area_turf(A, turf_predicates)
+	for (var/turf/t in turfs)
+		for (var/turf/tt in turfs)
+			if (istype(t) && istype(tt))
+				maxDistX = max(maxDistX, abs(t.x - tt.x))
 
-/*
-	Predicate Helpers
-*/
-/proc/is_station_area(area/A)
-	. = isStationLevel(A.z)
+	return maxDistX + 1
 
-/proc/is_contact_area(area/A)
-	. = isContactLevel(A.z)
+/proc/get_area_height(var/area/a)
+	var/list/turfs = get_area_turfs(a)
+	var/maxDistY = FALSE
+	for (var/turf/t in turfs)
+		for (var/turf/tt in turfs)
+			if (istype(t) && istype(tt))
+				maxDistY = max(maxDistY, abs(t.y - tt.y))
 
-/proc/is_player_area(area/A)
-	. = isPlayerLevel(A.z)
+	return maxDistY + 1
 
-/proc/is_not_space_area(area/A)
-	. = !istype(A,/area/space)
+/proc/min_area_x(var/area/a) //takes an actual area or a type
+	var/list/turfs = get_area_turfs(a)
+	var/min_x = world.maxx
 
-/proc/is_not_shuttle_area(area/A)
-	. = !istype(A,/area/shuttle)
+	for (var/turf/t in turfs)
+		if (istype(t))
+			min_x = min(min_x, t.x)
 
-/proc/is_area_with_turf(area/A)
-	. = isnum(A.x)
+	return min_x
 
-/proc/is_area_without_turf(area/A)
-	. = !is_area_with_turf(A)
+/proc/min_area_y(var/area/a)
+	var/list/turfs = get_area_turfs(a)
+	var/min_y = world.maxy
 
-/proc/is_coherent_area(area/A)
-	return !is_type_in_list(A, GLOB.using_map.area_coherency_test_exempt_areas)
+	for (var/turf/t in turfs)
+		if (istype(t))
+			min_y = min(min_y, t.y)
 
-GLOBAL_LIST_INIT(is_station_but_not_space_or_shuttle_area, list(/proc/is_station_area, /proc/is_not_space_area, /proc/is_not_shuttle_area))
+	return min_y
 
-GLOBAL_LIST_INIT(is_contact_but_not_space_or_shuttle_area, list(/proc/is_contact_area, /proc/is_not_space_area, /proc/is_not_shuttle_area))
+/proc/max_area_x(var/area/a) //takes an actual area or a type
+	var/list/turfs = get_area_turfs(a)
+	var/max_x = FALSE
 
-GLOBAL_LIST_INIT(is_player_but_not_space_or_shuttle_area, list(/proc/is_player_area, /proc/is_not_space_area, /proc/is_not_shuttle_area))
+	for (var/turf/t in turfs)
+		if (istype(t))
+			max_x = max(max_x, t.x)
 
-GLOBAL_LIST_INIT(is_player_but_not_space_area, list(/proc/is_player_area, /proc/is_not_space_area))
+	return max_x
 
-/*
-	Misc Helpers
-*/
-#define teleportlocs area_repository.get_areas_by_name_and_coords(GLOB.is_player_but_not_space_or_shuttle_area)
-#define stationlocs area_repository.get_areas_by_name(GLOB.is_player_but_not_space_or_shuttle_area)
+/proc/max_area_y(var/area/a)
+	var/list/turfs = get_area_turfs(a)
+	var/max_y = FALSE
 
+	for (var/turf/t in turfs)
+		if (istype(t))
+			max_y = max(max_y, t.y)
+
+	return max_y

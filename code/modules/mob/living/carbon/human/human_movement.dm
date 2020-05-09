@@ -1,138 +1,124 @@
+/mob/living/carbon/human/var/stored_tally = 0
+/mob/living/carbon/human/var/next_calculate_tally = -1
+
 /mob/living/carbon/human/movement_delay()
-	var/tally = ..()
 
-	if(species.slowdown)
-		tally += species.slowdown
+	if (world.time <= next_calculate_tally)
+		return stored_tally
 
-	tally += species.handle_movement_delay_special(src)
+	var/tally = 0
 
-	if (istype(loc, /turf/space)) return -1 // It's hard to be slowed down in space by... anything
+	if (species.slowdown)
+		tally = species.slowdown
 
-	if(embedded_flag || (stomach_contents && stomach_contents.len))
-		handle_embedded_and_stomach_objects() //Moving with objects stuck in you can cause bad times.
-
-	if(CE_SPEEDBOOST in chem_effects)
-		return -1
-
-	if(CE_SLOWDOWN in chem_effects)
-		tally += chem_effects[CE_SLOWDOWN]
-
-	for(var/datum/modifier/M in modifiers)
-		if(!isnull(M.haste) && M.haste == TRUE)
-			return -1 // Returning -1 will actually result in a slowdown for Teshari.
-		if(!isnull(M.slowdown))
-			tally += M.slowdown
+	if (embedded_flag)
+		handle_embedded_objects() //Moving with objects stuck in you can cause bad times.
 
 	var/health_deficiency = (maxHealth - health)
-	if(health_deficiency >= 40) tally += (health_deficiency / 25)
+	if (health_deficiency >= 40) tally += (health_deficiency / 25)
 
-	if(can_feel_pain())
-		if(get_shock() >= 10)
-			tally += (get_shock() / 10) //pain shouldn't slow you down if you can't even feel it
+	if (!(species && (species.flags & NO_PAIN)))
+		if (halloss >= 10) tally += (halloss / 10) //halloss shouldn't slow you down if you can't even feel it
 
-	if(istype(buckled, /obj/structure/bed/chair/wheelchair))
-		for(var/organ_name in list(BP_L_HAND, BP_R_HAND, BP_L_ARM, BP_R_ARM))
+	switch (nutrition)
+		if (-INFINITY to 50)
+			tally += 1.50
+		if (50 to 75)
+			tally += 1.25
+		if (75 to 100)
+			tally += 1.00
+		if (100 to 150)
+			tally += 0.75
+		if (150 to 220)
+			tally += 0.50
+
+	switch (water)
+		if (-INFINITY to 50)
+			tally += 1.50
+		if (50 to 75)
+			tally += 1.25
+		if (75 to 100)
+			tally += 1.00
+		if (100 to 150)
+			tally += 0.75
+		if (150 to 192)
+			tally += 0.50
+
+	if (wear_suit)
+		tally += wear_suit.slowdown
+
+	if (back)
+		tally += back.slowdown
+
+	tally += 1
+
+	if (buckled && istype(buckled, /obj/structure/bed/chair/wheelchair))
+		for (var/organ_name in list("l_hand","r_hand","l_arm","r_arm"))
 			var/obj/item/organ/external/E = get_organ(organ_name)
-			if(!E || E.is_stump())
-				tally += 4
-			else if(E.splinted)
-				tally += 0.5
-			else if(E.status & ORGAN_BROKEN)
-				tally += 1.5
+			if (!E || E.is_stump())
+				tally += 3
+			if (E.status & ORGAN_SPLINTED)
+				tally += 0.4
+			else if (E.status & ORGAN_BROKEN)
+				tally += 1.2
 	else
-		var/total_item_slowdown = -1
-		for(var/slot = slot_first to slot_last)
-			var/obj/item/I = get_equipped_item(slot)
-			if(I)
-				var/item_slowdown = 0
-				item_slowdown += I.slowdown_general
-				item_slowdown += I.slowdown_per_slot[slot]
-				item_slowdown += I.slowdown_accessory
+		if (shoes)
+			tally += shoes.slowdown
 
-				if(item_slowdown >= 0)
-					var/size_mod = 0
-					if(!(mob_size == MOB_MEDIUM))
-						size_mod = log(2, mob_size / MOB_MEDIUM)
-					if(species.strength + size_mod + 1 > 0)
-						item_slowdown = item_slowdown / (species.strength + size_mod + 1)
-					else
-						item_slowdown = item_slowdown - species.strength - size_mod
-				total_item_slowdown += max(item_slowdown, 0)
-		tally += round(total_item_slowdown)
-
-		for(var/organ_name in list(BP_L_LEG, BP_R_LEG, BP_L_FOOT, BP_R_FOOT))
+		for (var/organ_name in list("l_foot","r_foot","l_leg","r_leg"))
 			var/obj/item/organ/external/E = get_organ(organ_name)
-			if(!E || E.is_stump())
+			if (!E || E.is_stump())
 				tally += 4
-			else if(E.splinted)
+			else if (E.status & ORGAN_SPLINTED)
 				tally += 0.5
-			else if(E.status & ORGAN_BROKEN)
+			else if (E.status & ORGAN_BROKEN)
 				tally += 1.5
 
-	if(aiming && aiming.aiming_at)
-		tally += 5 // Iron sights make you slower, it's a well-known fact.
+	var/obj/item/organ/external/E = get_organ("chest")
+	if (!E || ((E.status & ORGAN_BROKEN) && E.brute_dam > E.min_broken_damage) || (E.status & ORGAN_MUTATED))
+		tally += 3
 
-	if(MUTATION_FAT in mutations)
+	if (shock_stage >= 10) tally += 0.5
+
+	if (aiming && aiming.aiming_at) tally += 5 // Iron sights make you slower, it's a well-known fact.
+
+	if (FAT in mutations)
 		tally += 1.5
+
 	if (bodytemperature < 283.222)
 		tally += (283.222 - bodytemperature) / 10 * 1.75
 
-	tally += blocking * 1.5
+	handle_stance()
+	tally += max(2 * stance_damage, FALSE) //damaged/missing feet or legs is slow
 
-	tally += max(2 * stance_damage, 0) //damaged/missing feet or legs is slow
+	if (mRun in mutations)
+		tally = max(tally, 0)
 
-	if(!isSynthetic(src))	// are you hungry? I think yes
-		var/nut_level = nutrition / 100
-		switch(nutrition)
-			if(0 to 150)
-				tally += 1.5 - nut_level
-			if(450 to INFINITY)
-				tally += nut_level - 4.5
+	if (chem_effects.Find(CE_SPEEDBOOST))
+		tally -= 0.10
 
-	if(mRun in mutations)
-		tally = 0
+	stored_tally = tally
 
-	return (tally+config.human_delay)
+	next_calculate_tally = world.time + 10
 
-/mob/living/carbon/human/Allow_Spacemove(check_drift = 0)
-	//Can we act?
-	if(restrained())	return 0
+	return tally
 
-	//Do we have a working jetpack?
-	var/obj/item/weapon/tank/jetpack/thrust
-	if(back)
-		if(istype(back,/obj/item/weapon/tank/jetpack))
-			thrust = back
-		else if(istype(back,/obj/item/weapon/rig))
-			var/obj/item/weapon/rig/rig = back
-			for(var/obj/item/rig_module/maneuvering_jets/module in rig.installed_modules)
-				thrust = module.jets
-				break
+/mob/living/carbon/human/Process_Spacemove(var/check_drift = FALSE)
+	return FALSE
 
-	if(thrust)
-		if(((!check_drift) || (check_drift && thrust.stabilization_on)) && (!lying) && (thrust.allow_thrust(0.01, src)))
-			inertia_dir = 0
-			return 1
-
-	//If no working jetpack then use the other checks
-	. = ..()
-
-
-/mob/living/carbon/human/slip_chance(prob_slip = 5)
-	if(!..())
-		return 0
+/mob/living/carbon/human/slip_chance(var/prob_slip = 5)
+	if (!..())
+		return FALSE
 
 	//Check hands and mod slip
-	if(!l_hand)	prob_slip -= 2
-	else if(l_hand.w_class <= ITEM_SIZE_SMALL)	prob_slip -= 1
+	if (!l_hand)	prob_slip -= 2
+	else if (l_hand.w_class <= 2)	prob_slip -= 1
 	if (!r_hand)	prob_slip -= 2
-	else if(r_hand.w_class <= ITEM_SIZE_SMALL)	prob_slip -= 1
+	else if (r_hand.w_class <= 2)	prob_slip -= 1
 
 	return prob_slip
 
 /mob/living/carbon/human/Check_Shoegrip()
-	if(species.species_flags & SPECIES_FLAG_NO_SLIP)
-		return 1
-	if(shoes && (shoes.item_flags & ITEM_FLAG_NOSLIP) && istype(shoes, /obj/item/clothing/shoes/magboots))  //magboots + dense_object = no floating
-		return 1
-	return 0
+	if (species.flags & NO_SLIP)
+		return TRUE
+	return FALSE

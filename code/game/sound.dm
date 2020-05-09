@@ -1,6 +1,6 @@
 //Sound environment defines. Reverb preset for sounds played in an area, see sound datum reference for more.
-#define GENERIC 0
-#define PADDED_CELL 1
+#define GENERIC FALSE
+#define PADDED_CELL TRUE
 #define ROOM 2
 #define BATHROOM 3
 #define LIVINGROOM 4
@@ -35,365 +35,205 @@
 #define SMALL_SOFTFLOOR ROOM
 #define ASTEROID CAVE
 #define SPACE UNDERWATER
+#define OUTSIDE FOREST
 
-GLOBAL_LIST_INIT(far_shot_sound,list('sound/effects/weapons/gun/far_fire1.ogg','sound/effects/weapons/gun/far_fire2.ogg','sound/effects/weapons/gun/far_fire3.ogg'))
+var/list/shatter_sound = list('sound/effects/Glassbr1.ogg','sound/effects/Glassbr2.ogg','sound/effects/Glassbr3.ogg')
+var/list/explosion_sound = list('sound/effects/Explosion1.ogg','sound/effects/Explosion2.ogg')
+var/list/spark_sound = list('sound/effects/sparks1.ogg','sound/effects/sparks2.ogg','sound/effects/sparks3.ogg','sound/effects/sparks4.ogg')
+var/list/rustle_sound = list('sound/effects/rustle1.ogg','sound/effects/rustle2.ogg','sound/effects/rustle3.ogg','sound/effects/rustle4.ogg','sound/effects/rustle5.ogg')
+var/list/punch_sound = list('sound/weapons/punch1.ogg','sound/weapons/punch2.ogg','sound/weapons/punch3.ogg', 'sound/weapons/punch4.ogg')
+var/list/clown_sound = list('sound/effects/clownstep1.ogg','sound/effects/clownstep2.ogg')
+var/list/swing_hit_sound = list('sound/weapons/genhit1.ogg', 'sound/weapons/genhit2.ogg', 'sound/weapons/genhit3.ogg')
+var/list/hiss_sound = list('sound/voice/hiss1.ogg','sound/voice/hiss2.ogg','sound/voice/hiss3.ogg','sound/voice/hiss4.ogg')
+var/list/page_sound = list('sound/effects/pageturn1.ogg', 'sound/effects/pageturn2.ogg','sound/effects/pageturn3.ogg')
+var/list/keyboard_sound = list ('sound/effects/keyboard/keyboard1.ogg','sound/effects/keyboard/keyboard2.ogg', 'sound/effects/keyboard/keyboard3.ogg', 'sound/effects/keyboard/keyboard4.ogg')
+var/list/robot_talk_heavy_sound = list ('sound/machines/robots/robot_talk_heavy1.ogg','sound/machines/robots/robot_talk_heavy2.ogg','sound/machines/robots/robot_talk_heavy3.ogg','sound/machines/robots/robot_talk_heavy4.ogg')
+var/list/robot_talk_light_sound = list ('sound/machines/robots/robot_talk_light1.ogg','sound/machines/robots/robot_talk_light2.ogg','sound/machines/robots/robot_talk_light3.ogg','sound/machines/robots/robot_talk_light4.ogg','sound/machines/robots/robot_talk_light5.ogg')
+var/list/miss_sound = list ('sound/weapons/guns/misc/miss.ogg','sound/weapons/guns/misc/miss2.ogg','sound/weapons/guns/misc/miss3.ogg','sound/weapons/guns/misc/miss4.ogg')
+var/list/ric_sound = list ('sound/weapons/guns/misc/ric1.ogg','sound/weapons/guns/misc/ric2.ogg','sound/weapons/guns/misc/ric3.ogg','sound/weapons/guns/misc/ric4.ogg','sound/weapons/guns/misc/ric5.ogg')
+var/list/casing_sound = list ('sound/weapons/guns/misc/casingfall1.ogg','sound/weapons/guns/misc/casingfall2.ogg','sound/weapons/guns/misc/casingfall3.ogg','sound/weapons/guns/misc/casingfall4.ogg')
+var/list/bullet_hit_object_sound = list('sound/weapons/guns/misc/bullethit.ogg')
+var/list/bullet_hit_flesh_sound = list('sound/effects/gore/bullethit1.ogg','sound/effects/gore/bullethit2.ogg','sound/effects/gore/bullethit3.ogg','sound/effects/gore/bullethit4.ogg')
+var/list/trauma_sound = list('sound/effects/gore/trauma1.ogg', 'sound/effects/gore/trauma2.ogg', 'sound/effects/gore/trauma3.ogg')
+var/list/platingfootsteps = list('sound/effects/footsteps/plating/plating1.ogg','sound/effects/footsteps/plating/plating2.ogg','sound/effects/footsteps/plating/plating3.ogg','sound/effects/footsteps/plating/plating4.ogg')
+var/list/erikafootsteps = list('sound/effects/footsteps/tile1.ogg','sound/effects/footsteps/tile2.ogg','sound/effects/footsteps/tile3.ogg','sound/effects/footsteps/tile4.ogg')
+var/list/grassfootsteps = list('sound/effects/footsteps/grass/grass1.ogg','sound/effects/footsteps/grass/grass2.ogg','sound/effects/footsteps/grass/grass3.ogg','sound/effects/footsteps/grass/grass4.ogg')
+var/list/dirtfootsteps = list('sound/effects/footsteps/dirt/dirt1.ogg','sound/effects/footsteps/dirt/dirt2.ogg','sound/effects/footsteps/dirt/dirt3.ogg','sound/effects/footsteps/dirt/dirt4.ogg')
+var/list/waterfootsteps = list('sound/effects/footsteps/water/slosh1.ogg','sound/effects/footsteps/water/slosh2.ogg','sound/effects/footsteps/water/slosh3.ogg','sound/effects/footsteps/water/slosh4.ogg')
+var/list/sandfootsteps = list('sound/effects/footsteps/sand/sand_step1.ogg','sound/effects/footsteps/sand/sand_step2.ogg','sound/effects/footsteps/sand/sand_step3.ogg','sound/effects/footsteps/sand/sand_step4.ogg','sound/effects/footsteps/sand/sand_step5.ogg','sound/effects/footsteps/sand/sand_step6.ogg','sound/effects/footsteps/sand/sand_step7.ogg','sound/effects/footsteps/sand/sand_step8.ogg')
+var/list/woodfootsteps = list ('sound/effects/footsteps/wood/wood_step1.ogg','sound/effects/footsteps/wood/wood_step2.ogg','sound/effects/footsteps/wood/wood_step3.ogg','sound/effects/footsteps/wood/wood_step4.ogg','sound/effects/footsteps/wood/wood_step5.ogg','sound/effects/footsteps/wood/wood_step6.ogg','sound/effects/footsteps/wood/wood_step7.ogg','sound/effects/footsteps/wood/wood_step8.ogg')
+var/list/carpetfootsteps = list ('sound/effects/footsteps/carpet/carpet_step1.ogg','sound/effects/footsteps/carpet/carpet_step2.ogg','sound/effects/footsteps/carpet/carpet_step3.ogg','sound/effects/footsteps/carpet/carpet_step4.ogg','sound/effects/footsteps/carpet/carpet_step5.ogg','sound/effects/footsteps/carpet/carpet_step6.ogg','sound/effects/footsteps/carpet/carpet_step7.ogg','sound/effects/footsteps/carpet/carpet_step8.ogg')
 
-GLOBAL_LIST_INIT(f_cheavyb_sound,list('sound/effects/emotes/f_cheavyb1.ogg'))
+var/list/artillery_out = list( 'sound/weapons/WW2/new_exp_1.ogg', 'sound/weapons/WW2/new_exp_2.ogg', 'sound/weapons/WW2/new_exp_high_1.ogg', 'sound/weapons/WW2/new_exp_high_2.ogg', 'sound/weapons/WW2/new_exp_high_3.ogg')
+var/list/artillery_in = list( 'sound/weapons/WW2/new_artillery_incoming01.ogg', 'sound/weapons/WW2/new_artillery_incoming02.ogg', 'sound/weapons/WW2/new_artillery_incoming03.ogg', 'sound/weapons/WW2/new_artillery_incoming04.ogg', 'sound/weapons/WW2/new_artillery_incoming05.ogg', 'sound/weapons/WW2/new_artillery_incoming06.ogg')
+var/list/artillery_out_distance = list( 'sound/weapons/WW2/explo_distant01.ogg', 'sound/weapons/WW2/explo_distant02.ogg', 'sound/weapons/WW2/explo_distant03.ogg', 'sound/weapons/WW2/explo_distant04.ogg', 'sound/weapons/WW2/explo_distant05.ogg', 'sound/weapons/WW2/explo_distant06.ogg', 'sound/weapons/WW2/explo_distant07.ogg', 'sound/weapons/WW2/explo_distant08.ogg')
+var/list/artillery_in_distance = list( 'sound/weapons/WW2/explo_distant01.ogg', 'sound/weapons/WW2/explo_distant02.ogg', 'sound/weapons/WW2/explo_distant03.ogg', 'sound/weapons/WW2/explo_distant04.ogg', 'sound/weapons/WW2/explo_distant05.ogg', 'sound/weapons/WW2/explo_distant06.ogg', 'sound/weapons/WW2/explo_distant07.ogg', 'sound/weapons/WW2/explo_distant08.ogg')
 
-GLOBAL_LIST_INIT(f_cough_sound,list('sound/effects/emotes/f_cough1.ogg','sound/effects/emotes/f_cough2.ogg'))
+var/list/train_movement_sounds = list( 'sound/effects/train/moving.ogg' )
+var/list/train_halting_sounds = list( 'sound/effects/train/halting.ogg' )
 
-GLOBAL_LIST_INIT(f_heavyb_sound,list('sound/effects/emotes/f_heavyb1.ogg','sound/effects/emotes/f_heavyb2.ogg','sound/effects/emotes/f_heavyb3.ogg',
-									'sound/effects/emotes/f_heavyb4.ogg','sound/effects/emotes/f_heavyb5.ogg','sound/effects/emotes/f_heavyb6.ogg',
-									'sound/effects/emotes/f_heavyb7.ogg','sound/effects/emotes/f_heavyb8.ogg','sound/effects/emotes/f_heavyb9.ogg'))
+var/list/wryyys = list('sound/voice/wryyy_1.ogg', 'sound/voice/wryyy_2.ogg',
+	'sound/voice/wryyy_3.ogg', 'sound/voice/wryyy_4.ogg',
+	'sound/voice/wryyy_5.ogg', 'sound/voice/wryyy_6.ogg')
 
-GLOBAL_LIST_INIT(f_pain_sound,list('sound/effects/emotes/f_pain1.ogg','sound/effects/emotes/f_pain2.ogg','sound/effects/emotes/f_pain3.ogg',
-									'sound/effects/emotes/f_pain4.ogg','sound/effects/emotes/f_pain5.ogg','sound/effects/emotes/f_pain6.ogg',
-									'sound/effects/emotes/f_pain7.ogg','sound/effects/emotes/f_pain8.ogg','sound/effects/emotes/f_pain9.ogg',
-									'sound/effects/emotes/f_pain10.ogg','sound/effects/emotes/f_pain11.ogg','sound/effects/emotes/f_pain12.ogg',
-									'sound/effects/emotes/f_pain13.ogg','sound/effects/emotes/f_pain14.ogg','sound/effects/emotes/f_pain15.ogg',
-									'sound/effects/emotes/f_pain16.ogg','sound/effects/emotes/f_pain17.ogg','sound/effects/emotes/f_pain18.ogg'))
+var/list/doorknock_sounds = list(
+	'sound/effects/doorknock1.ogg',
+	'sound/effects/doorknock2.ogg',
+	'sound/effects/doorknock3.ogg',
+	'sound/effects/doorknock4.ogg',
+	'sound/effects/doorknock5.ogg',
+	'sound/effects/doorknock6.ogg')
 
-GLOBAL_LIST_INIT(m_cheavyb_sound,list('sound/effects/emotes/m_cheavyb1.ogg','sound/effects/emotes/m_cheavyb2.ogg'))
+// emote sounds from InterBay
+var/list/cough_sounds_male = list(
+	'sound/effects/emotes/male_cough1.ogg',
+	'sound/effects/emotes/male_cough2.ogg',
+	'sound/effects/emotes/male_cough3.ogg',
+	'sound/effects/emotes/male_cough4.ogg')
 
-GLOBAL_LIST_INIT(m_cough_sound,list('sound/effects/emotes/m_cough1.ogg','sound/effects/emotes/m_cough2.ogg'))
+var/list/cry_sounds_male = list(
+	'sound/effects/emotes/male_cry1.ogg',
+	'sound/effects/emotes/male_cry2.ogg')
 
-GLOBAL_LIST_INIT(m_heavyb_sound,list('sound/effects/emotes/m_heavyb1.ogg','sound/effects/emotes/m_heavyb2.ogg','sound/effects/emotes/m_heavyb3.ogg',
-									'sound/effects/emotes/m_heavyb4.ogg','sound/effects/emotes/m_heavyb5.ogg','sound/effects/emotes/m_heavyb6.ogg',
-									'sound/effects/emotes/m_heavyb7.ogg','sound/effects/emotes/m_heavyb8.ogg','sound/effects/emotes/m_heavyb9.ogg',
-									'sound/effects/emotes/m_heavyb10.ogg','sound/effects/emotes/m_heavyb11.ogg','sound/effects/emotes/m_heavyb12.ogg',
-									'sound/effects/emotes/m_heavyb13.ogg','sound/effects/emotes/m_heavyb14.ogg'))
+var/list/laugh_sounds_male = list(
+	'sound/effects/emotes/male_laugh1.ogg')
 
-GLOBAL_LIST_INIT(m_pain_sound,list('sound/effects/emotes/m_pain1.ogg','sound/effects/emotes/m_pain2.ogg','sound/effects/emotes/m_pain3.ogg',
-									'sound/effects/emotes/m_pain4.ogg','sound/effects/emotes/m_pain5.ogg','sound/effects/emotes/m_pain6.ogg',
-									'sound/effects/emotes/m_pain7.ogg','sound/effects/emotes/m_pain8.ogg','sound/effects/emotes/m_pain9.ogg',
-									'sound/effects/emotes/m_pain10.ogg','sound/effects/emotes/m_pain11.ogg','sound/effects/emotes/m_pain12.ogg',
-									'sound/effects/emotes/m_pain13.ogg','sound/effects/emotes/m_pain14.ogg','sound/effects/emotes/m_pain15.ogg',
-									'sound/effects/emotes/m_pain16.ogg','sound/effects/emotes/m_pain17.ogg','sound/effects/emotes/m_pain18.ogg',
-									'sound/effects/emotes/m_pain19.ogg','sound/effects/emotes/m_pain20.ogg','sound/effects/emotes/m_pain21.ogg'))
+var/list/chuckle_sounds_male = list(
+	'sound/effects/emotes/male_laugh2.ogg',
+	'sound/effects/emotes/male_laugh3.ogg')
 
-GLOBAL_LIST_INIT(global_ambient_sound,list('sound/ambience/global/amb1.ogg','sound/ambience/global/amb2.ogg','sound/ambience/global/amb3.ogg',
-										'sound/ambience/global/amb4.ogg','sound/ambience/global/amb5.ogg','sound/ambience/global/amb6.ogg',
-										'sound/ambience/global/amb7.ogg','sound/ambience/global/amb8.ogg','sound/ambience/global/amb9.ogg',
-										'sound/ambience/global/amb10.ogg'))
+var/list/yawn_sounds_male = list(
+	'sound/effects/emotes/male_yawn1.ogg',
+	'sound/effects/emotes/male_yawn2.ogg')
 
-GLOBAL_LIST_INIT(science_ambient_sound,list('sound/ambience/science/amb1.ogg','sound/ambience/science/amb2.ogg','sound/ambience/science/amb3.ogg',
-										'sound/ambience/science/amb4.ogg','sound/ambience/science/amb5.ogg','sound/ambience/science/amb6.ogg',
-										'sound/ambience/science/amb7.ogg','sound/ambience/science/amb8.ogg'))
+var/list/sigh_sounds_male = list(
+	'sound/effects/emotes/male_sigh.ogg')
 
-GLOBAL_LIST_INIT(ai_ambient_sound,list('sound/ambience/ai/amb1.ogg','sound/ambience/ai/amb2.ogg','sound/ambience/ai/amb3.ogg',
-										'sound/ambience/ai/amb4.ogg','sound/ambience/ai/amb5.ogg','sound/ambience/ai/amb6.ogg',
-										'sound/ambience/ai/amb7.ogg','sound/ambience/ai/amb8.ogg','sound/ambience/ai/amb9.ogg',
-										'sound/ambience/ai/amb10.ogg','sound/ambience/ai/amb12.ogg'))
+var/list/sneeze_sounds_male = list(
+	'sound/effects/emotes/male_sneeze1.ogg',
+	'sound/effects/emotes/male_sneeze2.ogg')
 
-GLOBAL_LIST_INIT(maintenance_ambient_sound,list('sound/ambience/maintenance/amb1.ogg','sound/ambience/maintenance/amb2.ogg','sound/ambience/maintenance/amb3.ogg',
-												'sound/ambience/maintenance/amb4.ogg','sound/ambience/maintenance/amb5.ogg','sound/ambience/maintenance/amb6.ogg',
-												'sound/ambience/maintenance/amb7.ogg','sound/ambience/maintenance/amb8.ogg','sound/ambience/maintenance/amb9.ogg',
-												'sound/ambience/maintenance/amb10.ogg','sound/ambience/maintenance/amb12.ogg','sound/ambience/maintenance/amb13.ogg',
-												'sound/ambience/maintenance/amb14.ogg','sound/ambience/maintenance/amb15.ogg','sound/ambience/maintenance/amb16.ogg',
-												'sound/ambience/maintenance/amb17.ogg','sound/ambience/maintenance/amb18.ogg','sound/ambience/maintenance/amb19.ogg',
-												'sound/ambience/maintenance/amb20.ogg','sound/ambience/maintenance/amb21.ogg','sound/ambience/maintenance/amb22.ogg',
-												'sound/ambience/maintenance/amb23.ogg','sound/ambience/maintenance/amb24.ogg','sound/ambience/maintenance/amb25.ogg',
-												'sound/ambience/maintenance/amb26.ogg','sound/ambience/maintenance/amb27.ogg','sound/ambience/maintenance/amb28.ogg',
-												'sound/ambience/maintenance/amb29.ogg'))
+var/list/cough_sounds_female = list(
+	'sound/effects/emotes/female_cough1.ogg',
+	'sound/effects/emotes/female_cough2.ogg',
+	'sound/effects/emotes/female_cough3.ogg',
+	'sound/effects/emotes/female_cough4.ogg',
+	'sound/effects/emotes/female_cough5.ogg',
+	'sound/effects/emotes/female_cough6.ogg')
 
-GLOBAL_LIST_INIT(engineering_ambient_sound,list('sound/ambience/engineering/amb1.ogg','sound/ambience/engineering/amb2.ogg','sound/ambience/engineering/amb3.ogg',
-												'sound/ambience/engineering/amb4.ogg','sound/ambience/engineering/amb5.ogg','sound/ambience/engineering/amb6.ogg',
-												'sound/ambience/engineering/amb7.ogg','sound/ambience/engineering/amb8.ogg','sound/ambience/engineering/amb9.ogg',
-												'sound/ambience/engineering/amb10.ogg','sound/ambience/engineering/amb12.ogg','sound/ambience/engineering/amb13.ogg',
-												'sound/ambience/engineering/amb14.ogg','sound/ambience/engineering/amb15.ogg','sound/ambience/engineering/amb16.ogg',
-												'sound/ambience/engineering/amb17.ogg','sound/ambience/engineering/amb18.ogg','sound/ambience/engineering/amb19.ogg',
-												'sound/ambience/engineering/amb20.ogg','sound/ambience/engineering/amb21.ogg','sound/ambience/engineering/amb22.ogg',
-												'sound/ambience/engineering/amb23.ogg','sound/ambience/engineering/amb24.ogg','sound/ambience/engineering/amb25.ogg',
-												'sound/ambience/engineering/amb26.ogg','sound/ambience/engineering/amb27.ogg','sound/ambience/engineering/amb28.ogg',
-												'sound/ambience/engineering/amb29.ogg','sound/ambience/engineering/amb30.ogg'))
+var/list/cry_sounds_female = list(
+	'sound/effects/emotes/female_cry1.ogg',
+	'sound/effects/emotes/female_cry2.ogg')
 
-GLOBAL_LIST_INIT(space_ambient_sound,list('sound/ambience/space/exterior1.ogg','sound/ambience/space/exterior2.ogg','sound/ambience/space/exterior3.ogg',
-										'sound/ambience/space/exterior4.ogg','sound/ambience/space/exterior5.ogg','sound/ambience/space/exterior6.ogg',
-										'sound/ambience/space/exterior7.ogg','sound/ambience/space/exterior8.ogg','sound/ambience/space/exterior9.ogg',
-										'sound/ambience/space/exterior10.ogg','sound/ambience/space/exterior11.ogg','sound/ambience/space/exterior12.ogg',
-										'sound/ambience/space/exterior13.ogg','sound/ambience/space/exterior14.ogg','sound/ambience/space/exterior15.ogg',
-										'sound/ambience/space/exterior16.ogg','sound/ambience/space/exterior17.ogg','sound/ambience/space/exterior18.ogg',
-										'sound/ambience/space/exterior19.ogg','sound/ambience/space/exterior20.ogg','sound/ambience/space/exterior21.ogg'))
+var/list/laugh_sounds_female = list(
+	'sound/effects/emotes/female_laugh1.ogg',
+	'sound/effects/emotes/female_laugh3.ogg')
 
-GLOBAL_LIST_INIT(handcuffs_sound,list('sound/effects/using/cuffs/use1.ogg','sound/effects/using/cuffs/use2.ogg'))
+var/list/chuckle_sounds_female = list('sound/effects/emotes/female_laugh2.ogg')
 
-GLOBAL_LIST_INIT(cable_hcuffs_sound,list('sound/effects/using/cuffs/cable_use1.ogg'))
+var/list/yawn_sounds_female = list(
+	'sound/effects/emotes/female_yawn1.ogg',
+	'sound/effects/emotes/female_yawn2.ogg',
+	'sound/effects/emotes/female_yawn3.ogg')
 
-GLOBAL_LIST_INIT(far_fire_sound,list('sound/effects/weapons/gun/far_fire1.ogg','sound/effects/weapons/gun/far_fire2.ogg','sound/effects/weapons/gun/far_fire3.ogg'))
+var/list/sigh_sounds_female = list(
+	'sound/effects/emotes/female_sigh.ogg')
 
-GLOBAL_LIST_INIT(magazine_insert_sound,list('sound/effects/weapons/gun/magazine_insert1.ogg','sound/effects/weapons/gun/magazine_insert2.ogg','sound/effects/weapons/gun/magazine_insert3.ogg'))
+var/list/sneeze_sounds_female = list(
+	'sound/effects/emotes/female_sneeze1.ogg',
+	'sound/effects/emotes/female_sneeze2.ogg')
 
-GLOBAL_LIST_INIT(shell_insert_sound,list('sound/effects/weapons/gun/shell_insert1.ogg','sound/effects/weapons/gun/shell_insert2.ogg'))
+var/list/charge_sounds_ger = list(
+	'sound/effects/emotes/charge_ger.ogg',
+	'sound/effects/emotes/charge_ger2.ogg',
+	'sound/effects/emotes/charge_ger3.ogg',
+	'sound/effects/emotes/charge_ger4.ogg',
+	'sound/effects/emotes/charge_ger5.ogg')
+var/list/charge_sounds_sov = list(
+	'sound/effects/emotes/charge_sov.ogg',
+	'sound/effects/emotes/charge_sov2.ogg',
+	'sound/effects/emotes/charge_sov3.ogg',
+	'sound/effects/emotes/charge_sov4.ogg')
+var/list/charge_sounds_eng = list(
+	'sound/effects/emotes/charge_eng.ogg')
+var/list/charge_sounds_jap = list(
+	'sound/effects/emotes/charge_jap.ogg')
+var/list/charge_sounds_pol = list(
+	'sound/effects/emotes/charge_pol.ogg')
 
-GLOBAL_LIST_INIT(bullet_insert_sound,list('sound/effects/weapons/gun/bullet_insert1.ogg','sound/effects/weapons/gun/bullet_insert2.ogg','sound/effects/weapons/gun/bullet_insert3.ogg',
-										'sound/effects/weapons/gun/bullet_insert4.ogg','sound/effects/weapons/gun/bullet_insert5.ogg','sound/effects/weapons/gun/bullet_insert6.ogg',
-										'sound/effects/weapons/gun/bullet_insert7.ogg','sound/effects/weapons/gun/bullet_insert8.ogg','sound/effects/weapons/gun/bullet_insert9.ogg',
-										'sound/effects/weapons/gun/bullet_insert10.ogg','sound/effects/weapons/gun/bullet_insert11.ogg'))
+// pain, etc sounds from Interbay
 
-GLOBAL_LIST_INIT(shotgun_pump_in_sound,list('sound/effects/weapons/gun/shotgun_pump_in1.ogg','sound/effects/weapons/gun/shotgun_pump_in2.ogg'))
-GLOBAL_LIST_INIT(shotgun_pump_out_sound,list('sound/effects/weapons/gun/shotgun_pump_out1.ogg','sound/effects/weapons/gun/shotgun_pump_out2.ogg','sound/effects/weapons/gun/shotgun_pump_out3.ogg'))
 
-GLOBAL_LIST_INIT(fire_silent_sound,list('sound/effects/weapons/gun/fire_silent1.ogg','sound/effects/weapons/gun/fire_silent2.ogg','sound/effects/weapons/gun/fire_silent3.ogg',
-										'sound/effects/weapons/gun/fire_silent4.ogg','sound/effects/weapons/gun/fire_silent5.ogg','sound/effects/weapons/gun/fire_silent6.ogg',
-										'sound/effects/weapons/gun/fire_silent7.ogg'))
-
-GLOBAL_LIST_INIT(casing_drop_sound,list('sound/effects/weapons/gun/casing_drop1.ogg','sound/effects/weapons/gun/casing_drop2.ogg','sound/effects/weapons/gun/casing_drop3.ogg',
-										'sound/effects/weapons/gun/casing_drop4.ogg'))
-
-GLOBAL_LIST_INIT(pull_body_sound,list('sound/effects/pulling/pull_body1.ogg','sound/effects/pulling/pull_body2.ogg','sound/effects/pulling/pull_body3.ogg',
-									'sound/effects/pulling/pull_body4.ogg','sound/effects/pulling/pull_body5.ogg','sound/effects/pulling/pull_body6.ogg',
-									'sound/effects/pulling/pull_body7.ogg','sound/effects/pulling/pull_body8.ogg','sound/effects/pulling/pull_body9.ogg'))
-
-GLOBAL_LIST_INIT(pull_box_sound,list('sound/effects/pulling/pull_box1.ogg','sound/effects/pulling/pull_box2.ogg','sound/effects/pulling/pull_box3.ogg',
-									'sound/effects/pulling/pull_box4.ogg','sound/effects/pulling/pull_box5.ogg','sound/effects/pulling/pull_box6.ogg',
-									'sound/effects/pulling/pull_box7.ogg','sound/effects/pulling/pull_box8.ogg','sound/effects/pulling/pull_box9.ogg',
-									'sound/effects/pulling/pull_box10.ogg','sound/effects/pulling/pull_box11.ogg','sound/effects/pulling/pull_box12.ogg',
-									'sound/effects/pulling/pull_box13.ogg','sound/effects/pulling/pull_box14.ogg','sound/effects/pulling/pull_box15.ogg',
-									'sound/effects/pulling/pull_box16.ogg','sound/effects/pulling/pull_box17.ogg','sound/effects/pulling/pull_box18.ogg',
-									'sound/effects/pulling/pull_box19.ogg','sound/effects/pulling/pull_box20.ogg','sound/effects/pulling/pull_box21.ogg'))
-
-GLOBAL_LIST_INIT(pull_closet_sound,list('sound/effects/pulling/pull_closet1.ogg','sound/effects/pulling/pull_closet2.ogg','sound/effects/pulling/pull_closet3.ogg',
-										'sound/effects/pulling/pull_closet4.ogg','sound/effects/pulling/pull_closet5.ogg','sound/effects/pulling/pull_closet6.ogg'))
-
-GLOBAL_LIST_INIT(pull_glass_sound,list('sound/effects/pulling/pull_glass1.ogg','sound/effects/pulling/pull_glass2.ogg','sound/effects/pulling/pull_glass3.ogg',
-										'sound/effects/pulling/pull_glass4.ogg','sound/effects/pulling/pull_glass5.ogg','sound/effects/pulling/pull_glass6.ogg',
-										'sound/effects/pulling/pull_glass7.ogg','sound/effects/pulling/pull_glass8.ogg','sound/effects/pulling/pull_glass9.ogg',
-										'sound/effects/pulling/pull_glass10.ogg'))
-
-GLOBAL_LIST_INIT(pull_machine_sound,list('sound/effects/pulling/pull_machine1.ogg','sound/effects/pulling/pull_machine2.ogg','sound/effects/pulling/pull_machine3.ogg',
-										'sound/effects/pulling/pull_machine4.ogg','sound/effects/pulling/pull_machine5.ogg','sound/effects/pulling/pull_machine6.ogg',
-										'sound/effects/pulling/pull_machine7.ogg','sound/effects/pulling/pull_machine8.ogg','sound/effects/pulling/pull_machine9.ogg'))
-
-GLOBAL_LIST_INIT(pull_stone_sound,list('sound/effects/pulling/pull_stone1.ogg','sound/effects/pulling/pull_stone2.ogg','sound/effects/pulling/pull_stone3.ogg',
-										'sound/effects/pulling/pull_stone4.ogg','sound/effects/pulling/pull_stone5.ogg','sound/effects/pulling/pull_stone6.ogg',
-										'sound/effects/pulling/pull_stone7.ogg','sound/effects/pulling/pull_stone8.ogg','sound/effects/pulling/pull_stone9.ogg',
-										'sound/effects/pulling/pull_stone10.ogg','sound/effects/pulling/pull_stone11.ogg','sound/effects/pulling/pull_stone12.ogg',
-										'sound/effects/pulling/pull_stone13.ogg','sound/effects/pulling/pull_stone14.ogg','sound/effects/pulling/pull_stone15.ogg',
-										'sound/effects/pulling/pull_stone16.ogg','sound/effects/pulling/pull_stone17.ogg','sound/effects/pulling/pull_stone18.ogg',
-										'sound/effects/pulling/pull_stone19.ogg','sound/effects/pulling/pull_stone20.ogg','sound/effects/pulling/pull_stone21.ogg',
-										'sound/effects/pulling/pull_stone22.ogg','sound/effects/pulling/pull_stone23.ogg','sound/effects/pulling/pull_stone24.ogg',
-										'sound/effects/pulling/pull_stone25.ogg','sound/effects/pulling/pull_stone26.ogg','sound/effects/pulling/pull_stone27.ogg',
-										'sound/effects/pulling/pull_stone28.ogg','sound/effects/pulling/pull_stone29.ogg','sound/effects/pulling/pull_stone30.ogg',
-										'sound/effects/pulling/pull_stone31.ogg'))
-
-GLOBAL_LIST_INIT(pull_wood_sound,list('sound/effects/pulling/pull_wood1.ogg','sound/effects/pulling/pull_wood2.ogg','sound/effects/pulling/pull_wood3.ogg',
-										'sound/effects/pulling/pull_wood4.ogg','sound/effects/pulling/pull_wood5.ogg','sound/effects/pulling/pull_wood6.ogg',
-										'sound/effects/pulling/pull_wood7.ogg','sound/effects/pulling/pull_wood8.ogg','sound/effects/pulling/pull_wood9.ogg',
-										'sound/effects/pulling/pull_wood10.ogg','sound/effects/pulling/pull_wood11.ogg','sound/effects/pulling/pull_wood12.ogg',
-										'sound/effects/pulling/pull_wood13.ogg','sound/effects/pulling/pull_wood14.ogg','sound/effects/pulling/pull_wood15.ogg',
-										'sound/effects/pulling/pull_wood16.ogg','sound/effects/pulling/pull_wood17.ogg','sound/effects/pulling/pull_wood18.ogg',
-										'sound/effects/pulling/pull_wood19.ogg','sound/effects/pulling/pull_wood20.ogg','sound/effects/pulling/pull_wood21.ogg',
-										'sound/effects/pulling/pull_wood22.ogg','sound/effects/pulling/pull_wood23.ogg','sound/effects/pulling/pull_wood24.ogg',
-										'sound/effects/pulling/pull_wood25.ogg','sound/effects/pulling/pull_wood26.ogg','sound/effects/pulling/pull_wood27.ogg',
-										'sound/effects/pulling/pull_wood28.ogg','sound/effects/pulling/pull_wood29.ogg','sound/effects/pulling/pull_wood30.ogg',
-										'sound/effects/pulling/pull_wood31.ogg','sound/effects/pulling/pull_wood32.ogg','sound/effects/pulling/pull_wood33.ogg',
-										'sound/effects/pulling/pull_wood34.ogg','sound/effects/pulling/pull_wood35.ogg','sound/effects/pulling/pull_wood36.ogg',
-										'sound/effects/pulling/pull_wood37.ogg'))
-
-GLOBAL_LIST_INIT(drink_pickup_sound,list('sound/effects/using/bottles/pickup1.ogg','sound/effects/using/bottles/pickup2.ogg'))
-
-GLOBAL_LIST_INIT(drink_sound,list('sound/effects/eating/drink1.ogg'))
-
-GLOBAL_LIST_INIT(eat_sound,list('sound/effects/eating/eat1.ogg','sound/effects/eating/eat2.ogg','sound/effects/eating/eat3.ogg',
-								'sound/effects/eating/eat4.ogg','sound/effects/eating/eat5.ogg'))
-
-GLOBAL_LIST_INIT(closet_close_sound,list('sound/effects/using/closets/close1.ogg','sound/effects/using/closets/close2.ogg','sound/effects/using/closets/close3.ogg',
-								'sound/effects/using/closets/close4.ogg','sound/effects/using/closets/close5.ogg','sound/effects/using/closets/close6.ogg',
-								'sound/effects/using/closets/close7.ogg'))
-
-GLOBAL_LIST_INIT(closet_open_sound,list('sound/effects/using/closets/open1.ogg','sound/effects/using/closets/open2.ogg','sound/effects/using/closets/open3.ogg',
-				'sound/effects/using/closets/open4.ogg','sound/effects/using/closets/open5.ogg','sound/effects/using/closets/open6.ogg',
-				'sound/effects/using/closets/open7.ogg'))
-
-GLOBAL_LIST_INIT(disposal_sound,list('sound/effects/using/disposal/drop1.ogg','sound/effects/using/disposal/drop2.ogg','sound/effects/using/disposal/drop3.ogg',
-									'sound/effects/using/disposal/drop4.ogg'))
-
-GLOBAL_LIST_INIT(outfit_sound,list('sound/effects/using/outfit/use1.ogg','sound/effects/using/outfit/use2.ogg','sound/effects/using/outfit/use3.ogg',
-								'sound/effects/using/outfit/use4.ogg','sound/effects/using/outfit/use5.ogg','sound/effects/using/outfit/use6.ogg',
-								'sound/effects/using/outfit/use7.ogg','sound/effects/using/outfit/use8.ogg','sound/effects/using/outfit/use9.ogg',
-								'sound/effects/using/outfit/use10.ogg','sound/effects/using/outfit/use11.ogg','sound/effects/using/outfit/use12.ogg',
-								'sound/effects/using/outfit/use13.ogg','sound/effects/using/outfit/use14.ogg','sound/effects/using/outfit/use15.ogg',
-								'sound/effects/using/outfit/use16.ogg','sound/effects/using/outfit/use17.ogg','sound/effects/using/outfit/use18.ogg',
-								'sound/effects/using/outfit/use19.ogg','sound/effects/using/outfit/use20.ogg','sound/effects/using/outfit/use21.ogg',
-								'sound/effects/using/outfit/use22.ogg','sound/effects/using/outfit/use23.ogg','sound/effects/using/outfit/use24.ogg',
-								'sound/effects/using/outfit/use25.ogg','sound/effects/using/outfit/use26.ogg','sound/effects/using/outfit/use27.ogg',
-								'sound/effects/using/outfit/use28.ogg','sound/effects/using/outfit/use29.ogg','sound/effects/using/outfit/use30.ogg',
-								'sound/effects/using/outfit/use31.ogg','sound/effects/using/outfit/use32.ogg','sound/effects/using/outfit/use33.ogg',
-								'sound/effects/using/outfit/use34.ogg','sound/effects/using/outfit/use35.ogg'))
-
-GLOBAL_LIST_INIT(vent_sound,list('sound/effects/vent/vent1.ogg','sound/effects/vent/vent2.ogg','sound/effects/vent/vent3.ogg',
-								'sound/effects/vent/vent4.ogg','sound/effects/vent/vent5.ogg','sound/effects/vent/vent6.ogg',
-								'sound/effects/vent/vent7.ogg','sound/effects/vent/vent8.ogg','sound/effects/vent/vent9.ogg',
-								'sound/effects/vent/vent10.ogg','sound/effects/vent/vent11.ogg','sound/effects/vent/vent12.ogg',
-								'sound/effects/vent/vent13.ogg','sound/effects/vent/vent14.ogg','sound/effects/vent/vent15.ogg',
-								'sound/effects/vent/vent16.ogg','sound/effects/vent/vent17.ogg','sound/effects/vent/vent18.ogg',
-								'sound/effects/vent/vent19.ogg'))
-
-GLOBAL_LIST_INIT(console_breaking_sound,list('sound/effects/breaking/console/break1.ogg','sound/effects/breaking/console/break2.ogg','sound/effects/breaking/console/break3.ogg'))
-
-GLOBAL_LIST_INIT(window_breaking_sound,list('sound/effects/breaking/window/break1.ogg', 'sound/effects/breaking/window/break2.ogg', 'sound/effects/breaking/window/break3.ogg',
-											'sound/effects/breaking/window/break4.ogg','sound/effects/breaking/window/break5.ogg','sound/effects/breaking/window/break6.ogg',
-											'sound/effects/breaking/window/break7.ogg','sound/effects/breaking/window/break8.ogg','sound/effects/breaking/window/break9.ogg',
-											'sound/effects/breaking/window/break10.ogg','sound/effects/breaking/window/break11.ogg','sound/effects/breaking/window/break12.ogg',
-											'sound/effects/breaking/window/break13.ogg','sound/effects/breaking/window/break14.ogg','sound/effects/breaking/window/break15.ogg',
-											'sound/effects/breaking/window/break16.ogg','sound/effects/breaking/window/break17.ogg','sound/effects/breaking/window/break18.ogg',
-											'sound/effects/breaking/window/break19.ogg','sound/effects/breaking/window/break20.ogg','sound/effects/breaking/window/break21.ogg',
-											'sound/effects/breaking/window/break22.ogg','sound/effects/breaking/window/break23.ogg'))
-
-GLOBAL_LIST_INIT(glass_hit_sound,list('sound/effects/materials/glass/knock1.ogg', 'sound/effects/materials/glass/knock2.ogg', 'sound/effects/materials/glass/knock3.ogg',
-										'sound/effects/materials/glass/knock4.ogg', 'sound/effects/materials/glass/knock5.ogg', 'sound/effects/materials/glass/knock6.ogg'))
-
-GLOBAL_LIST_INIT(glass_knock_sound,list('sound/effects/materials/glass/glassknock.ogg'))
-GLOBAL_LIST_INIT(electric_explosion_sound,list('sound/effects/explosions/electric1.ogg','sound/effects/explosions/electric2.ogg','sound/effects/explosions/electric3.ogg',
-												'sound/effects/explosions/electric4.ogg','sound/effects/explosions/electric5.ogg','sound/effects/explosions/electric6.ogg',
-												'sound/effects/explosions/electric7.ogg','sound/effects/explosions/electric8.ogg','sound/effects/explosions/electric9.ogg',
-												'sound/effects/explosions/electric10.ogg','sound/effects/explosions/electric11.ogg'))
-
-GLOBAL_LIST_INIT(explosion_sound,list('sound/effects/explosions/explosion1.ogg', 'sound/effects/explosions/explosion2.ogg', 'sound/effects/explosions/explosion3.ogg',
-										'sound/effects/explosions/explosion4.ogg', 'sound/effects/explosions/explosion5.ogg', 'sound/effects/explosions/explosion6.ogg',
-										'sound/effects/explosions/explosion7.ogg', 'sound/effects/explosions/explosion8.ogg', 'sound/effects/explosions/explosion9.ogg',
-										'sound/effects/explosions/explosion10.ogg', 'sound/effects/explosions/explosion11.ogg', 'sound/effects/explosions/explosion12.ogg',
-										'sound/effects/explosions/explosion13.ogg', 'sound/effects/explosions/explosion14.ogg', 'sound/effects/explosions/explosion15.ogg',
-										'sound/effects/explosions/explosion16.ogg', 'sound/effects/explosions/explosion17.ogg', 'sound/effects/explosions/explosion18.ogg',
-										'sound/effects/explosions/explosion19.ogg', 'sound/effects/explosions/explosion20.ogg', 'sound/effects/explosions/explosion21.ogg',
-										'sound/effects/explosions/explosion22.ogg', 'sound/effects/explosions/explosion23.ogg', 'sound/effects/explosions/explosion24.ogg'))
-
-GLOBAL_LIST_INIT(spark_small_sound,list('sound/effects/electric/small_spark1.ogg','sound/effects/electric/small_spark2.ogg','sound/effects/electric/small_spark3.ogg',
-										'sound/effects/electric/small_spark4.ogg','sound/effects/electric/small_spark5.ogg','sound/effects/electric/small_spark6.ogg',
-										'sound/effects/electric/small_spark7.ogg','sound/effects/electric/small_spark8.ogg'))
-
-GLOBAL_LIST_INIT(spark_sound,list('sound/effects/electric/spark1.ogg','sound/effects/electric/spark2.ogg','sound/effects/electric/spark3.ogg',
-									'sound/effects/electric/spark4.ogg','sound/effects/electric/spark5.ogg','sound/effects/electric/spark6.ogg',
-									'sound/effects/electric/spark7.ogg'))
-
-GLOBAL_LIST_INIT(spark_medium_sound,list('sound/effects/electric/medium_spark1.ogg','sound/effects/electric/medium_spark2.ogg'))
-
-GLOBAL_LIST_INIT(spark_heavy_sound,list('sound/effects/electric/heavy_spark1.ogg','sound/effects/electric/heavy_spark2.ogg','sound/effects/electric/heavy_spark3.ogg',
-									'sound/effects/electric/heavy_spark4.ogg'))
-
-GLOBAL_LIST_INIT(searching_clothes_sound,list('sound/effects/using/clothing/use1.ogg','sound/effects/using/clothing/use2.ogg','sound/effects/using/clothing/use3.ogg',
-												'sound/effects/using/clothing/use4.ogg','sound/effects/using/clothing/use5.ogg','sound/effects/using/clothing/use6.ogg'))
-
-GLOBAL_LIST_INIT(searching_cabinet_sound,list('sound/effects/using/cabinet/use1.ogg','sound/effects/using/cabinet/use2.ogg','sound/effects/using/cabinet/use3.ogg',
-												'sound/effects/using/cabinet/use4.ogg','sound/effects/using/cabinet/use5.ogg','sound/effects/using/cabinet/use6.ogg',
-												'sound/effects/using/cabinet/use7.ogg','sound/effects/using/cabinet/use8.ogg','sound/effects/using/cabinet/use9.ogg',
-												'sound/effects/using/cabinet/use10.ogg','sound/effects/using/cabinet/use11.ogg','sound/effects/using/cabinet/use12.ogg',
-												'sound/effects/using/cabinet/use13.ogg'))
-
-GLOBAL_LIST_INIT(searching_case_sound,list('sound/effects/using/case/use1.ogg','sound/effects/using/case/use2.ogg','sound/effects/using/case/use3.ogg',
-											'sound/effects/using/case/use4.ogg','sound/effects/using/case/use5.ogg','sound/effects/using/case/use6.ogg',
-											'sound/effects/using/case/use7.ogg','sound/effects/using/case/use8.ogg'))
-
-GLOBAL_LIST_INIT(crunch_sound,list('sound/effects/fighting/crunch1.ogg','sound/effects/fighting/crunch2.ogg','sound/effects/fighting/crunch3.ogg',
-									'sound/effects/fighting/crunch4.ogg','sound/effects/fighting/crunch5.ogg','sound/effects/fighting/crunch6.ogg',
-									'sound/effects/fighting/crunch7.ogg','sound/effects/fighting/crunch8.ogg','sound/effects/fighting/crunch9.ogg',
-									'sound/effects/fighting/crunch10.ogg','sound/effects/fighting/crunch11.ogg','sound/effects/fighting/crunch12.ogg'))
-
-GLOBAL_LIST_INIT(gib_sound,list('sound/effects/fighting/gib1.ogg','sound/effects/fighting/gib2.ogg','sound/effects/fighting/gib3.ogg',
-								'sound/effects/fighting/gib4.ogg','sound/effects/fighting/gib5.ogg','sound/effects/fighting/gib6.ogg',
-								'sound/effects/fighting/gib7.ogg','sound/effects/fighting/gib8.ogg','sound/effects/fighting/gib9.ogg',
-								'sound/effects/fighting/gib10.ogg'))
-
-GLOBAL_LIST_INIT(punch_sound,list('sound/effects/fighting/punch1.ogg','sound/effects/fighting/punch2.ogg','sound/effects/fighting/punch3.ogg','sound/effects/fighting/punch4.ogg'))
-GLOBAL_LIST_INIT(clown_sound,list('sound/effects/clownstep1.ogg','sound/effects/clownstep2.ogg'))
-GLOBAL_LIST_INIT(swing_hit_sound,list('sound/effects/fighting/genhit1.ogg', 'sound/effects/fighting/genhit2.ogg', 'sound/effects/fighting/genhit3.ogg'))
-
-GLOBAL_LIST_INIT(hiss_sound,list('sound/voice/hiss1.ogg','sound/voice/hiss2.ogg','sound/voice/hiss3.ogg','sound/voice/hiss4.ogg'))
-GLOBAL_LIST_INIT(page_sound,list('sound/effects/pageturn1.ogg', 'sound/effects/pageturn2.ogg','sound/effects/pageturn3.ogg'))
-GLOBAL_LIST_INIT(fracture_sound,list('sound/effects/bonebreak1.ogg','sound/effects/bonebreak2.ogg','sound/effects/bonebreak3.ogg','sound/effects/bonebreak4.ogg'))
-GLOBAL_LIST_INIT(lighter_sound,list('sound/items/lighter1.ogg','sound/items/lighter2.ogg','sound/items/lighter3.ogg'))
-
-GLOBAL_LIST_INIT(switch_small_sound,list('sound/effects/using/switch/small1.ogg','sound/effects/using/switch/small2.ogg'))
-
-GLOBAL_LIST_INIT(switch_large_sound,list('sound/effects/using/switch/large1.ogg','sound/effects/using/switch/large2.ogg','sound/effects/using/switch/large3.ogg',
-									'sound/effects/using/switch/large4.ogg'))
-
-GLOBAL_LIST_INIT(button_sound,list('sound/machines/button1.ogg','sound/machines/button2.ogg','sound/machines/button3.ogg','sound/machines/button4.ogg'))
-GLOBAL_LIST_INIT(chop_sound,list('sound/effects/fighting/chop1.ogg','sound/effects/fighting/chop2.ogg','sound/effects/fighting/chop3.ogg'))
-
-GLOBAL_LIST_INIT(far_explosion_sound,list('sound/effects/explosions/far_explosion1.ogg', 'sound/effects/explosions/far_explosion2.ogg', 'sound/effects/explosions/far_explosion3.ogg',
-										'sound/effects/explosions/far_explosion4.ogg', 'sound/effects/explosions/far_explosion5.ogg', 'sound/effects/explosions/far_explosion6.ogg',
-										'sound/effects/explosions/far_explosion7.ogg', 'sound/effects/explosions/far_explosion8.ogg', 'sound/effects/explosions/far_explosion9.ogg',
-										'sound/effects/explosions/far_explosion10.ogg', 'sound/effects/explosions/far_explosion11.ogg', 'sound/effects/explosions/far_explosion12.ogg',
-										'sound/effects/explosions/far_explosion13.ogg', 'sound/effects/explosions/far_explosion14.ogg', 'sound/effects/explosions/far_explosion15.ogg',
-										'sound/effects/explosions/far_explosion16.ogg', 'sound/effects/explosions/far_explosion17.ogg', 'sound/effects/explosions/far_explosion18.ogg',
-										'sound/effects/explosions/far_explosion19.ogg', 'sound/effects/explosions/far_explosion20.ogg', 'sound/effects/explosions/far_explosion21.ogg',
-										'sound/effects/explosions/far_explosion22.ogg', 'sound/effects/explosions/far_explosion23.ogg', 'sound/effects/explosions/far_explosion24.ogg',
-										'sound/effects/explosions/far_explosion25.ogg', 'sound/effects/explosions/far_explosion26.ogg', 'sound/effects/explosions/far_explosion27.ogg',
-										'sound/effects/explosions/far_explosion28.ogg', 'sound/effects/explosions/far_explosion29.ogg', 'sound/effects/explosions/far_explosion30.ogg',
-										'sound/effects/explosions/far_explosion31.ogg', 'sound/effects/explosions/far_explosion32.ogg', 'sound/effects/explosions/far_explosion33.ogg',
-										'sound/effects/explosions/far_explosion34.ogg', 'sound/effects/explosions/far_explosion35.ogg', 'sound/effects/explosions/far_explosion36.ogg',
-										'sound/effects/explosions/far_explosion37.ogg', 'sound/effects/explosions/far_explosion38.ogg', 'sound/effects/explosions/far_explosion39.ogg',
-										'sound/effects/explosions/far_explosion40.ogg', 'sound/effects/explosions/far_explosion41.ogg', 'sound/effects/explosions/far_explosion42.ogg',
-										'sound/effects/explosions/far_explosion43.ogg', 'sound/effects/explosions/far_explosion44.ogg', 'sound/effects/explosions/far_explosion45.ogg',
-										'sound/effects/explosions/far_explosion46.ogg', 'sound/effects/explosions/far_explosion47.ogg', 'sound/effects/explosions/far_explosion48.ogg',
-										'sound/effects/explosions/far_explosion49.ogg', 'sound/effects/explosions/far_explosion50.ogg'))
-
-/proc/playsound(atom/source, soundin, vol as num, vary, extrarange as num, falloff, is_global, frequency, is_ambiance = 0)
+/proc/playsound(var/atom/source, soundin, vol as num, vary, extrarange as num, falloff, var/is_global, var/list/excluded = list())
 
 	soundin = get_sfx(soundin) // same sound for everyone
 
-	if(isarea(source))
+	if (isarea(source))
 		error("[source] is an area and is trying to make the sound: [soundin]")
 		return
-	frequency = vary && isnull(frequency) ? get_rand_frequency() : frequency // Same frequency for everybody
+
+	var/frequency = get_rand_frequency() // Same frequency for everybody
 	var/turf/turf_source = get_turf(source)
 
-	// Looping through the player list has the added bonus of working for mobs inside containers
-	for (var/P in GLOB.player_list)
+	var/list/players_who_heard = list()
+ 	// Looping through the player list has the added bonus of working for mobs inside containers
+	for (var/P in player_list)
 		var/mob/M = P
-		if(!M || !M.client)
+
+		if (istype(source) && isnewplayer(M))
 			continue
-		if(get_dist(M, turf_source) <= (world.view + extrarange) * 2)
+
+		if (!M || !M.client)
+			continue
+
+		if (excluded.Find(M))
+			continue
+
+		var/distance = get_dist(M, turf_source)
+		if (distance <= ((world.view * 3) + extrarange))
 			var/turf/T = get_turf(M)
-			if(T && T.z == turf_source.z && (!is_ambiance || M.get_preference_value(/datum/client_preference/play_ambiance) == GLOB.PREF_YES))
-				M.playsound_local(turf_source, soundin, vol, vary, frequency, falloff, is_global, extrarange)
+			if (T && T.z == turf_source.z)
+				M.playsound_local(turf_source, soundin, vol, vary, frequency, falloff, is_global)
+				players_who_heard += M
+
+	return players_who_heard
 
 var/const/FALLOFF_SOUNDS = 0.5
 
-/mob/proc/playsound_local(turf/turf_source, soundin, vol as num, vary, frequency, falloff, is_global, extrarange)
-	if(!src.client || ear_deaf > 0)
-		return
-	var/sound/S = soundin
-	if(!istype(S))
-		soundin = get_sfx(soundin)
-		S = sound(soundin)
-		S.wait = 0 //No queue
-		S.channel = 0 //Any channel
-		S.volume = vol
-		S.environment = -1
-		if(frequency)
+/mob/proc/playsound_local(var/turf/turf_source, soundin, vol as num, vary, frequency, falloff, is_global)
+	if (!client || ear_deaf > 0)	return
+	soundin = get_sfx(soundin)
+
+	var/distance = -1
+
+	var/sound/S = sound(soundin)
+	S.wait = FALSE //No queue
+	S.channel = FALSE //Any channel
+	S.volume = vol
+	S.environment = -1
+	if (vary)
+		if (frequency)
 			S.frequency = frequency
-		else if (vary)
+		else
 			S.frequency = get_rand_frequency()
 
-	//sound volume falloff with pressure
-	var/pressure_factor = 1.0
-
-	if(isturf(turf_source))
+	if (isturf(turf_source))
 		// 3D sounds, the technology is here!
 		var/turf/T = get_turf(src)
 
 		//sound volume falloff with distance
-		var/distance = get_dist(T, turf_source)
+		distance = get_dist(T, turf_source)
 
-		S.volume -= max(distance - (world.view + extrarange), 0) * 2 //multiplicative falloff to add on top of natural audio falloff.
+		// multiplicative falloff to add on top of natural audio falloff
+		// this is louder now, because it should be louder than war ambience - Kachnov
+		S.volume -= min(0, (max(distance - world.view, 0) * 1.5))
 
-		var/datum/gas_mixture/hearer_env = T.return_air()
-		var/datum/gas_mixture/source_env = turf_source.return_air()
-
-		if (hearer_env && source_env)
-			var/pressure = min(hearer_env.return_pressure(), source_env.return_pressure())
-
-			if (pressure < ONE_ATMOSPHERE)
-				pressure_factor = max((pressure - SOUND_MINIMUM_PRESSURE)/(ONE_ATMOSPHERE - SOUND_MINIMUM_PRESSURE), 0)
-		else //in space
-			pressure_factor = 0
-
-		if (distance <= 1)
-			pressure_factor = max(pressure_factor, 0.15)	//hearing through contact
-
-		S.volume *= pressure_factor
+		// if you're in a different type of area (fake z levels) the sound will only be half as loud - Kachnov
+		if (S.volume > 0)
+			var/area/source_area = get_area(turf_source)
+			var/area/my_area = get_area(T)
+			if (source_area.is_void_area != my_area.is_void_area)
+				S.volume = ceil(S.volume/2)
 
 		if (S.volume <= 0)
 			return	//no volume means no sound
@@ -403,14 +243,14 @@ var/const/FALLOFF_SOUNDS = 0.5
 		var/dz = turf_source.y - T.y // Hearing from infront/behind
 		S.z = dz
 		// The y value is for above your head, but there is no ceiling in 2d spessmens.
-		S.y = 1
+		S.y = TRUE
 		S.falloff = (falloff ? falloff : FALLOFF_SOUNDS)
 
-	if(!is_global)
+	if (!is_global)
 
-		if(istype(src,/mob/living/))
-			var/mob/living/carbon/M = src
-			if (istype(M) && M.hallucination_power > 50 && M.chem_effects[CE_MIND] < 1)
+		if (istype(src,/mob/living/))
+			var/mob/living/M = src
+			if (M.hallucination)
 				S.environment = PSYCHOTIC
 			else if (M.druggy)
 				S.environment = DRUGGED
@@ -418,98 +258,105 @@ var/const/FALLOFF_SOUNDS = 0.5
 				S.environment = DIZZY
 			else if (M.confused)
 				S.environment = DIZZY
-			else if (M.stat == UNCONSCIOUS)
+			else if (M.sleeping)
 				S.environment = UNDERWATER
-			else if (pressure_factor < 0.5)
-				S.environment = SPACE
 			else
 				var/area/A = get_area(src)
 				S.environment = A.sound_env
-
-		else if (pressure_factor < 0.5)
-			S.environment = SPACE
-		else if(!get_area(src) == null)
+		else
 			var/area/A = get_area(src)
 			S.environment = A.sound_env
 
-	src << S
+	if (distance > 30)
+		S.environment = UNDERWATER
 
-/client/proc/playtitlemusic()
-	if(get_preference_value(/datum/client_preference/play_lobby_music) == GLOB.PREF_YES)
-		GLOB.lobby_music.play_to(src)
+	src << S
 
 /proc/get_rand_frequency()
 	return rand(32000, 55000) //Frequency stuff only works with 45kbps oggs.
 
 /proc/get_sfx(soundin)
-	if(istext(soundin))
+	if (istext(soundin))
 		switch(soundin)
-			if ("far_fire")				soundin = pick(GLOB.far_fire_sound)
-			if ("female_closed_breath")	soundin = pick(GLOB.f_cheavyb_sound)
-			if ("female_cough")			soundin = pick(GLOB.f_cough_sound)
-			if ("female_breath")		soundin = pick(GLOB.f_heavyb_sound)
-			if ("female_pain")			soundin = pick(GLOB.f_pain_sound)
-			if ("male_closed_breath")	soundin = pick(GLOB.m_cheavyb_sound)
-			if ("male_cough")			soundin = pick(GLOB.m_cough_sound)
-			if ("male_breath")			soundin = pick(GLOB.m_heavyb_sound)
-			if ("male_pain")			soundin = pick(GLOB.m_pain_sound)
-			if ("ai_ambient")			soundin = pick(GLOB.ai_ambient_sound)
-			if ("science_ambient")		soundin = pick(GLOB.science_ambient_sound)
-			if ("maintenance_ambient")	soundin = pick(GLOB.maintenance_ambient_sound)
-			if ("engineering_ambient")	soundin = pick(GLOB.engineering_ambient_sound)
-			if ("global_ambient")		soundin = pick(GLOB.global_ambient_sound)
-			if ("space_ambient")		soundin = pick(GLOB.space_ambient_sound)
-			if ("handcuffs")			soundin = pick(GLOB.handcuffs_sound)
-			if ("cable_handcuffs")		soundin = pick(GLOB.cable_hcuffs_sound)
-			if ("far_fire")				soundin = pick(GLOB.far_fire_sound)
-			if ("magazine_insert")		soundin = pick(GLOB.magazine_insert_sound)
-			if ("shell_insert")			soundin = pick(GLOB.shell_insert_sound)
-			if ("bullet_insert")		soundin = pick(GLOB.bullet_insert_sound)
-			if ("shotgun_pump_in")		soundin = pick(GLOB.shotgun_pump_in_sound)
-			if ("shotgun_pump_out")		soundin = pick(GLOB.shotgun_pump_out_sound)
-			if ("fire_silent")			soundin = pick(GLOB.fire_silent_sound)
-			if ("casing_drop")			soundin = pick(GLOB.casing_drop_sound)
-			if ("pull_body")			soundin = pick(GLOB.pull_body_sound)
-			if ("pull_box")				soundin = pick(GLOB.pull_box_sound)
-			if ("pull_closet")			soundin = pick(GLOB.pull_closet_sound)
-			if ("pull_glass")			soundin = pick(GLOB.pull_glass_sound)
-			if ("pull_machine")			soundin = pick(GLOB.pull_machine_sound)
-			if ("pull_stone")			soundin = pick(GLOB.pull_stone_sound)
-			if ("pull_wood")			soundin = pick(GLOB.pull_wood_sound)
-			if ("drink_pickup")			soundin = pick(GLOB.drink_pickup_sound)
-			if ("eat")					soundin = pick(GLOB.eat_sound)
-			if ("drink")				soundin = pick(GLOB.drink_sound)
-			if ("closet_close")			soundin = pick(GLOB.closet_close_sound)
-			if ("closet_open")			soundin = pick(GLOB.closet_open_sound)
-			if ("disposal")				soundin = pick(GLOB.disposal_sound)
-			if ("vent") 				soundin = pick(GLOB.vent_sound)
-			if ("outfit")				soundin = pick(GLOB.outfit_sound)
-			if ("console_breaking")		soundin = pick(GLOB.console_breaking_sound)
-			if ("window_breaking") 		soundin = pick(GLOB.window_breaking_sound)
-			if ("glass_hit") 			soundin = pick(GLOB.glass_hit_sound)
-			if ("glass_knock")			soundin = pick(GLOB.glass_knock_sound)
-			if ("electric_explosion")	soundin = pick(GLOB.electric_explosion_sound)
-			if ("explosion") 			soundin = pick(GLOB.explosion_sound)
-			if ("spark") 				soundin = pick(GLOB.spark_sound)
-			if ("spark_medium") 		soundin = pick(GLOB.spark_medium_sound)
-			if ("spark_heavy") 			soundin = pick(GLOB.spark_heavy_sound)
-			if ("searching_clothes") 	soundin = pick(GLOB.searching_clothes_sound)
-			if ("searching_cabinet") 	soundin = pick(GLOB.searching_cabinet_sound)
-			if ("searching_case") 		soundin = pick(GLOB.searching_case_sound)
-			if ("crunch")				soundin = pick(GLOB.crunch_sound)
-			if ("gib")					soundin = pick(GLOB.gib_sound)
-			if ("punch") 				soundin = pick(GLOB.punch_sound)
-			if ("clownstep") 			soundin = pick(GLOB.clown_sound)
-			if ("swing_hit") 			soundin = pick(GLOB.swing_hit_sound)
-			if ("hiss") 				soundin = pick(GLOB.hiss_sound)
-			if ("pageturn") 			soundin = pick(GLOB.page_sound)
-			if ("fracture") 			soundin = pick(GLOB.fracture_sound)
-			if ("light_bic") 			soundin = pick(GLOB.lighter_sound)
-			if ("switch_small") 		soundin = pick(GLOB.switch_small_sound)
-			if ("switch_large") 		soundin = pick(GLOB.switch_large_sound)
-			if ("button") 				soundin = pick(GLOB.button_sound)
-			if ("chop") 				soundin = pick(GLOB.chop_sound)
-			if ("far_explosion") 		soundin = pick(GLOB.far_explosion_sound)
-			else crash_with("Unknown sound: [soundin]")
+			if ("shatter") soundin = pick(shatter_sound)
+			if ("explosion") soundin = pick(explosion_sound)
+			if ("sparks") soundin = pick(spark_sound)
+			if ("rustle") soundin = pick(rustle_sound)
+			if ("punch") soundin = pick(punch_sound)
+			if ("clownstep") soundin = pick(clown_sound)
+			if ("swing_hit") soundin = pick(swing_hit_sound)
+			if ("hiss") soundin = pick(hiss_sound)
+			if ("pageturn") soundin = pick(page_sound)
+			if ("keyboard") soundin = pick(keyboard_sound)
+			if ("robot_talk_heavy") soundin = pick(robot_talk_heavy_sound)
+			if ("robot_talk_light") soundin = pick(robot_talk_light_sound)
+			if ("miss_sound") soundin = pick(miss_sound)
+			if ("ric_sound") soundin = pick(ric_sound)
+			if ("casing_sound") soundin = pick(casing_sound)
+			if ("hitobject") soundin = pick(bullet_hit_object_sound)
+			if ("bullethitflesh") soundin = pick(bullet_hit_flesh_sound)
+			if ("trauma") soundin = pick(trauma_sound)
+			if ("platingfootsteps") soundin = pick(platingfootsteps)
+			if ("erikafootsteps") soundin = pick(erikafootsteps)
+			if ("grassfootsteps") soundin = pick(grassfootsteps)
+			if ("dirtfootsteps") soundin = pick(dirtfootsteps)
+			if ("waterfootsteps") soundin = pick(waterfootsteps)
+			if ("sandfootsteps") soundin = pick(sandfootsteps)
+			if ("woodfootsteps") soundin = pick(woodfootsteps)
+			if ("carpetfootsteps") soundin = pick(carpetfootsteps)
+			if ("artillery_out") soundin = pick(artillery_out)
+			if ("artillery_in") soundin = pick(artillery_in)
+			if ("artillery_out_distance") soundin = pick(artillery_out_distance)
+			if ("artillery_in_distance") soundin = pick(artillery_in_distance)
+			if ("train_movement") soundin = pick(train_movement_sounds)
+			if ("train_halting") soundin = pick(train_halting_sounds)
+			if ("wryyy") soundin = pick(wryyys)
+			if ("doorknock") soundin = pick(doorknock_sounds)
+
+			// emote sounds from InterBay
+			if ("cough_male")
+				soundin = pick(cough_sounds_male)
+			if ("cry_male")
+				soundin = pick(cry_sounds_male)
+			if ("laugh_male")
+				soundin = pick(laugh_sounds_male)
+			if ("chuckle_male")
+				soundin = pick(chuckle_sounds_male)
+			if ("yawn_male")
+				soundin = pick(yawn_sounds_male)
+			if ("sigh_male")
+				soundin = pick(sigh_sounds_male)
+			if ("sneeze_male")
+				soundin = pick(sneeze_sounds_male)
+
+			if ("cough_female")
+				soundin = pick(cough_sounds_female)
+			if ("cry_female")
+				soundin = pick(cry_sounds_female)
+			if ("laugh_female")
+				soundin = pick(laugh_sounds_female)
+			if ("chuckle_female")
+				soundin = pick(chuckle_sounds_female)
+			if ("yawn_female")
+				soundin = pick(yawn_sounds_female)
+			if ("sigh_female")
+				soundin = pick(sigh_sounds_female)
+			if ("sneeze_female")
+				soundin = pick(sneeze_sounds_female)
+
+			if ("charge_JAPAN")
+				soundin = pick(charge_sounds_jap)
+			if ("charge_USA")
+				soundin = pick(charge_sounds_eng)
+			if ("charge_SOVIET")
+				soundin = pick(charge_sounds_sov)
+			if ("charge_CIVILIAN")
+				soundin = pick(charge_sounds_sov)
+			if ("charge_PARTISAN")
+				soundin = pick(charge_sounds_sov)
+			if ("charge_POLISH_INSURGENTS")
+				soundin = pick(charge_sounds_pol)
+			if ("charge_GERMAN")
+				soundin = pick(charge_sounds_ger)
 
 	return soundin

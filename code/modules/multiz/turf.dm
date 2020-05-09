@@ -1,217 +1,150 @@
-/turf/proc/CanZPass(atom/A, direction)
-	if(z == A.z) //moving FROM this turf
-		return direction == UP //can't go below
-	else
-		if(direction == UP) //on a turf below, trying to enter
-			return 0
-		if(direction == DOWN) //on a turf above, trying to enter
-			return !density
-
-/turf/simulated/open/CanZPass(atom/A, direction)
-	if(locate(/obj/structure/catwalk, src))
-		if(z == A.z)
-			if(direction == DOWN)
-				return 0
-		else if(direction == UP)
-			return 0
-	return 1
-
-/turf/space/CanZPass(atom/A, direction)
-	if(locate(/obj/structure/catwalk, src))
-		if(z == A.z)
-			if(direction == DOWN)
-				return 0
-		else if(direction == UP)
-			return 0
-	return 1
-
-/turf/simulated/open
+/turf/open
 	name = "open space"
 	icon = 'icons/turf/space.dmi'
-	icon_state = ""
+	icon_state = "black"
+	density = FALSE
 	plane = OPENSPACE_PLANE
-	density = 0
 	pathweight = 100000 //Seriously, don't try and path over this one numbnuts
 
 	var/turf/below
+	var/list/underlay_references
+	var/global/overlay_map = list()
 
-/turf/simulated/open/post_change()
+/turf/open/initialize()
 	..()
-	update()
-
-/turf/simulated/open/Initialize()
-	. = ..()
-	update()
-
-
-/turf/simulated/open/proc/update()
-	plane = OPENSPACE_PLANE + (src.z * PLANE_DIFFERENCE)
 	below = GetBelow(src)
-	GLOB.turf_changed_event.register(below, src,/turf/simulated/open/proc/turf_change)
-	GLOB.exited_event.register(below, src, /turf/simulated/open/proc/handle_move)
-	GLOB.entered_event.register(below, src, /turf/simulated/open/proc/handle_move)
-	levelupdate()
-	for(var/atom/movable/A in src)
-		A.fall()
-	SSopen_space.add_turf(src, 1)
-	update_icon()
+//	ASSERT(HasBelow(z)) // why does this fail at roundstart? Who knows - Kach
 
-
-/turf/simulated/open/update_dirt()
-	return 0
-
-/turf/simulated/open/Entered(atom/movable/mover)
-	..()
-	mover.fall()
-
-// Called when thrown object lands on this turf.
-/turf/simulated/open/hitby(atom/movable/AM, speed)
+/turf/open/Entered(var/atom/movable/mover)
 	. = ..()
-	AM.fall()
-
-
-// override to make sure nothing is hidden
-/turf/simulated/open/levelupdate()
-	for(var/obj/O in src)
-		O.hide(0)
-
-
-
-/turf/simulated/open/examine(mob/user, distance, infix, suffix)
-	if(..(user, 2))
-		var/depth = 1
-		for(var/T = GetBelow(src); isopenspace(T); T = GetBelow(T))
-			depth += 1
-		to_chat(user, "It is about [depth] level\s deep.")
-
-
-
-/**
-* Update icon and overlays of open space to be that of the turf below, plus any visible objects on that turf.
+	if (!mover || !mover.loc)
+		return
+	if (isobserver(mover))
+		return
+	if (istype(mover, /obj/lift_controller))
+		return
+	if (istype(mover, /obj/lift_pseudoturf))
+		return
+	if (locate(/obj/lift_pseudoturf) in contents)
+		return
+	if (istype(mover, /mob/living/carbon/human))
+		var/mob/living/carbon/human/H = mover
+		if (H.stopDumbDamage)
+			return
+#ifdef USE_OPENSPACE
+	if (istype(mover, /mob/shadow))
+		return
+#endif USE_OPENSPACE
+	// only fall down in defined areas (read: areas with artificial gravitiy)
+	if (!istype(below)) //make sure that there is actually something below
+		below = GetBelow(src)
+		if (!below)
+			return
+/*
+	if (istype(mover, /mob/living/bot/floorbot) && locate(/obj/structure/lattice) in src)
+		return  // This will prevent floorbot from falling on open space turfs with support
 */
-/turf/simulated/open/update_icon()
-	overlays.Cut()
-	underlays.Cut()
-	var/turf/below = GetBelow(src)
-	if(below)
-		var/below_is_open = isopenspace(below)
-		if(below_is_open)
-			underlays = below.underlays
-			overlays += below.overlays
-
-		else
-			var/image/bottom_turf = image(icon = below.icon, icon_state = below.icon_state, dir=below.dir, layer=below.layer)
-			bottom_turf.plane = below.plane + src.plane
-			bottom_turf.color = below.color
-			underlays += bottom_turf
-			for(var/image/I in below.overlays)
-				var/image/temp = I
-				temp.plane = I.plane + src.plane
-				temp.color = I.color
-				overlays += temp
-
-
-		// get objects (not mobs, they are handled by /obj/zshadow)
-		var/list/o_img = list()
-		for(var/obj/O in below)
-			if(O.invisibility) continue // Ignore objects that have any form of invisibility
-			if(O.loc != below) continue // Ignore multi-turf objects not directly below
-			var/image/temp2 = image(O, dir = O.dir, layer = O.layer)
-			temp2.plane = O.plane + src.plane
-			temp2.color = O.color
-			temp2.overlays += O.overlays
-			// TODO Is pixelx/y needed?
-			o_img += temp2
-
-		var/overlays_pre = overlays.len
-		overlays += o_img
-
-		var/overlays_post = overlays.len
-		if(overlays_post != (overlays_pre + o_img.len)) //Here we go!
-			//log_world("Corrupted openspace turf at [x],[y],[z] being replaced. Pre: [overlays_pre], Post: [overlays_post]")
-			ChangeTurf(/turf/simulated/open)
-			return //Let's get out of here.
-
-		//TODO : Add overlays if people fall down holes
-
-		if(!below_is_open)
-			overlays += GLOB.over_OS_darkness
-
-		return 0
-	return PROCESS_KILL
-
-
-/turf/simulated/open/attackby(obj/item/C as obj, mob/user as mob)
-	if (istype(C, /obj/item/stack/rods))
-		var/obj/structure/lattice/L = locate(/obj/structure/lattice, src)
-		if(L)
-			return L.attackby(C, user)
-		var/obj/item/stack/rods/R = C
-		if (R.use(1))
-			to_chat(user, "<span class='notice'>You lay down the support lattice.</span>")
-			playsound(src, 'sound/effects/fighting/Genhit.ogg', 50, 1)
-			new /obj/structure/lattice(locate(src.x, src.y, src.z))
-			//Update turfs
-			SSopen_space.add_turf(src, 1)
+	// No gravit, No fall.
+	if (!has_gravity(src))
 		return
 
-	if (istype(C, /obj/item/stack/tile))
+	if (locate(/obj/structure/catwalk) in src)
+		return
+
+	// Prevent pipes from falling into the void... if there is a pipe to support it.
+	/*if (mover.anchored || istype(mover, /obj/item/pipe) && \
+		(locate(/obj/structure/disposalpipe/up) in below) || \
+		 locate(/obj/machinery/atmospherics/pipe/zpipe/up in below))
+		return
+*/
+	// See if something prevents us from falling.
+	var/soft = FALSE
+	for (var/atom/A in below)
+		if (A.density)
+			if (!istype(A, /obj/structure/window))
+				return
+			else
+				var/obj/structure/window/W = A
+				if (W.is_fulltile())
+					return
+		// Dont break here, since we still need to be sure that it isnt blocked
+		if (istype(A, /obj/structure/stairs))
+			soft = TRUE
+
+	// We've made sure we can move, now.
+	mover.Move(below)
+
+	if (!soft)
+
+		if (!isliving(mover))
+			if (istype(below, /turf/open))
+				mover.visible_message("\The [mover] falls from the deck above through \the [below]!", "You hear a whoosh of displaced air.")
+			else
+				mover.visible_message("\The [mover] falls from the deck above and slams into \the [below]!", "You hear something slam into the deck.")
+		else
+			var/mob/M = mover
+			if (istype(below, /turf/open))
+				below.visible_message("\The [mover] falls from the deck above through \the [below]!", "You hear a soft whoosh.[M.stat ? "" : ".. and some screaming."]")
+			else
+				M.visible_message("\The [mover] falls from the deck above and slams into \the [below]!", "You land on \the [below].", "You hear a soft whoosh and a crunch")
+
+			// Handle people getting hurt, it's funny!
+			if (istype(mover, /mob/living/carbon/human))
+				playsound(mover.loc, 'sound/effects/gore/fallsmash.ogg', 50, TRUE)
+				var/mob/living/carbon/human/H = mover
+				var/damage = 10
+				H.apply_damage(rand(0, damage), BRUTE, "head")
+				H.apply_damage(rand(0, damage), BRUTE, "chest")
+				H.apply_damage(rand(0, damage), BRUTE, "l_leg")
+				H.apply_damage(rand(0, damage), BRUTE, "r_leg")
+				H.apply_damage(rand(0, damage), BRUTE, "l_arm")
+				H.apply_damage(rand(0, damage), BRUTE, "r_arm")
+				H.Stun(3)//.
+				H.updatehealth()//.
+
+// override to make sure nothing is hidden
+/turf/open/levelupdate()
+	for (var/obj/O in src)
+		O.hide(0)
+
+// Straight copy from space.
+/turf/open/attackby(obj/item/C as obj, mob/user as mob)
+	if (istype(C, /obj/item/stack/rods))
 		var/obj/structure/lattice/L = locate(/obj/structure/lattice, src)
-		if(L)
+		if (L)
+			return
+		var/obj/item/stack/rods/R = C
+		if (R.use(1))
+			user << "<span class='notice'>Constructing support lattice ...</span>"
+			playsound(src, 'sound/weapons/Genhit.ogg', 50, TRUE)
+			ReplaceWithLattice()
+		return
+
+	if (istype(C, /obj/item/stack/tile/floor))
+		var/obj/structure/lattice/L = locate(/obj/structure/lattice, src)
+		if (L)
 			var/obj/item/stack/tile/floor/S = C
 			if (S.get_amount() < 1)
 				return
 			qdel(L)
-			playsound(src, 'sound/effects/fighting/Genhit.ogg', 50, 1)
+			playsound(src, 'sound/weapons/Genhit.ogg', 50, TRUE)
 			S.use(1)
-			ChangeTurf(/turf/simulated/floor/plating/airless)
+			ChangeTurf(/turf/floor/airless)
 			return
 		else
-			to_chat(user, "<span class='warning'>The plating is going to need some support.</span>")
-
-	//To lay cable.
-	if(isCoil(C))
-		var/obj/item/stack/cable_coil/coil = C
-		coil.turf_place(src, user)
-		return
+			user << "<span class='warning'>The plating is going to need some support.</span>"
 	return
 
-//Most things use is_plating to test if there is a cover tile on top (like regular floors)
-/turf/simulated/open/is_plating()
-	return 1
+/turf/open/attack_hand(mob/user)//Climbing down.
+	if (!istype(below)) //make sure that there is actually something below
+		below = GetBelow(src)
+		if (!below)
+			return
+	if (user.resting)//Can't climb down if you're lying down.
+		return
 
-/turf/simulated/open/proc/handle_move(atom/current_loc, atom/movable/am, atom/changed_loc)
-	//First handle objs and such
-	if(!am.invisibility && isobj(am))
-	//Update icons
-		SSopen_space.add_turf(src, 1)
-	//Check for mobs and create/destroy their shadows
-	if(isliving(am))
-		var/mob/living/M = am
-		M.check_shadow()
+	playsound(user.loc, 'sound/effects/climb.ogg', 50, TRUE)
+	spawn(15)
+		user.visible_message("<span class='notice'>[user] climbs down.","<span class='notice'>You climb down.")
+		user.Move(below)
 
-/turf/simulated/open/proc/clean_up()
-	//Unregister
-	GLOB.turf_changed_event.unregister(below, src,/turf/simulated/open/proc/turf_change)
-	GLOB.exited_event.unregister(below, src, /turf/simulated/open/proc/handle_move)
-	GLOB.entered_event.unregister(below, src, /turf/simulated/open/proc/handle_move)
-	//Take care of shadow
-	for(var/mob/zshadow/M in src)
-		qdel(M)
-
-//When turf changes, a bunch of things can take place
-/turf/simulated/open/proc/turf_change(turf/affected)
-	if(!isopenspace(affected))//If affected is openspace it will add itself
-		SSopen_space.add_turf(src, 1)
-
-
-//The two situations which require unregistering
-
-/turf/simulated/open/ChangeTurf(turf/N, tell_universe=1, force_lighting_update = 0)
-	//We do not want to change any of the behaviour, just make sure this goes away
-	src.clean_up()
-	. = ..()
-
-/turf/simulated/open/Destroy()
-	src.clean_up()
-	. = ..()

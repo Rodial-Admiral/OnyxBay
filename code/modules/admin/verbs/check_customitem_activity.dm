@@ -23,7 +23,7 @@ var/inactive_keys = "None<br>"
 
 	usr << browse(dat, "window=inactive_customitems;size=600x480")
 
-/proc/populate_inactive_customitems_list(client/C)
+/proc/populate_inactive_customitems_list(var/client/C)
 	set background = 1
 
 	if(checked_for_inactives)
@@ -49,14 +49,13 @@ var/inactive_keys = "None<br>"
 			continue
 
 		var/cur_key = Entry[1]
-		if(!ckeys_with_customitems.Find(cur_key))
-			ckeys_with_customitems.Add(cur_key)
+		if(!(cur_key in ckeys_with_customitems))
+			ckeys_with_customitems += cur_key)
 
 	//run a query to get all ckeys inactive for over 2 months
 	var/list/inactive_ckeys = list()
 	if(ckeys_with_customitems.len)
-		var/DBQuery/query_inactive = dbcon.NewQuery("SELECT ckey, lastseen FROM erro_player WHERE datediff(Now(), lastseen) > 60")
-		query_inactive.Execute()
+		var/list/rowdata = database.execute("SELECT ckey, lastseen FROM erro_player WHERE datediff(Now(), lastseen) > 60")
 		while(query_inactive.NextRow())
 			var/cur_ckey = query_inactive.item[1]
 			//if the ckey has a custom item attached, output it

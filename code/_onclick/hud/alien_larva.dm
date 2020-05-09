@@ -1,34 +1,51 @@
-/mob/living/carbon/alien
-	hud_type = /datum/hud/larva
+//mob/living/carbon/alien/instantiate_hud(var/datum/hud/HUD)
+//	HUD.larva_hud()
 
-/datum/hud/larva/FinalizeInstantiation()
+/*/datum/hud/proc/larva_hud()
 
-	src.adding = list()
-	src.other = list()
+	adding = list()
+	other = list()
 
 	var/obj/screen/using
 
 	using = new /obj/screen()
-	using.SetName("mov_intent")
+	using.name = "mov_intent"
 	using.set_dir(SOUTHWEST)
 	using.icon = 'icons/mob/screen1_alien.dmi'
 	using.icon_state = (mymob.m_intent == "run" ? "running" : "walking")
 	using.screen_loc = ui_acti
-	src.adding += using
+	using.layer = 20
+	adding += using
 	move_intent = using
 
 	mymob.healths = new /obj/screen()
 	mymob.healths.icon = 'icons/mob/screen1_alien.dmi'
 	mymob.healths.icon_state = "health0"
-	mymob.healths.SetName("health")
+	mymob.healths.name = "health"
 	mymob.healths.screen_loc = ui_alien_health
+
+	mymob.blind = new /obj/screen()
+	mymob.blind.icon = 'icons/mob/screen1_full.dmi'
+	mymob.blind.icon_state = "blackimageoverlay"
+	mymob.blind.name = " "
+	mymob.blind.screen_loc = "1,1"
+	mymob.blind.mouse_opacity = FALSE
+	mymob.blind.layer = 18
+	mymob.blind.alpha = FALSE
+
+	mymob.flash = new /obj/screen()
+	mymob.flash.icon = 'icons/mob/screen1_alien.dmi'
+	mymob.flash.icon_state = "blank"
+	mymob.flash.name = "flash"
+	mymob.flash.screen_loc = ui_entire_screen
+	mymob.flash.layer = 17
 
 	mymob.fire = new /obj/screen()
 	mymob.fire.icon = 'icons/mob/screen1_alien.dmi'
 	mymob.fire.icon_state = "fire0"
-	mymob.fire.SetName("fire")
+	mymob.fire.name = "fire"
 	mymob.fire.screen_loc = ui_fire
 
-	mymob.client.screen = list()
-	mymob.client.screen += list( mymob.healths, mymob.fire)
-	mymob.client.screen += src.adding + src.other
+	mymob.client.screen = null
+	mymob.client.screen += list( mymob.healths, mymob.blind, mymob.flash, mymob.fire) //, mymob.rest, mymob.sleep, mymob.mach )
+	mymob.client.screen += adding + other*/

@@ -5,99 +5,109 @@
 /obj/item/weapon/reagent_containers/glass
 	name = " "
 	var/base_name = " "
-	desc = ""
+	desc = " "
 	icon = 'icons/obj/chemical.dmi'
 	icon_state = "null"
 	item_state = "null"
 	amount_per_transfer_from_this = 10
-	possible_transfer_amounts = "5;10;15;25;30;60"
+	possible_transfer_amounts = list(5,10,15,25,30,60)
 	volume = 60
-	w_class = ITEM_SIZE_SMALL
-	atom_flags = ATOM_FLAG_OPEN_CONTAINER
-	unacidable = 1 //glass doesn't dissolve in acid
-	pickup_sound = 'sound/effects/using/bottles/pickup3.ogg'
-	can_be_splashed = TRUE
+	w_class = 2
+	flags = OPENCONTAINER
 
+	var/label_text = ""
 
 	var/list/can_be_placed_into = list(
-		/obj/machinery/chem_master/,
-		/obj/machinery/chemical_dispenser,
-		/obj/machinery/reagentgrinder,
+		/obj/structure/chem_master/,
+		/obj/structure/chemical_dispenser,
+		/obj/structure/reagentgrinder,
 		/obj/structure/table,
 		/obj/structure/closet,
 		/obj/structure/sink,
 		/obj/item/weapon/storage,
-		/obj/machinery/atmospherics/unary/cryo_cell,
+//		/obj/machinery/atmospherics/unary/cryo_cell,
+	//	/obj/machinery/dna_scannernew,
 		/obj/item/weapon/grenade/chem_grenade,
-		/mob/living/bot/medbot,
 		/obj/item/weapon/storage/secure/safe,
 		/obj/structure/iv_drip,
-		/obj/machinery/disease2/incubator,
-		/obj/machinery/disposal,
+	//	/obj/machinery/disease2/incubator,
+	//	/obj/machinery/disposal,
 		/mob/living/simple_animal/cow,
-		/mob/living/simple_animal/hostile/retaliate/goat,
-		/obj/machinery/computer/centrifuge,
-		/obj/machinery/sleeper,
-		/obj/machinery/smartfridge/,
-		/obj/machinery/biogenerator,
-		/obj/machinery/constructable_frame,
-		/obj/machinery/radiocarbon_spectrometer,
-		/obj/machinery/computer/neuromod_rnd
-	)
+	//	/obj/machinery/computer/centrifuge,
+//		/obj/machinery/sleeper,
+	//	/obj/machinery/smartfridge/,
+	//	/obj/machinery/biogenerator,
+	//	/obj/machinery/constructable_frame
+		)
 
-/obj/item/weapon/reagent_containers/glass/New()
-	..()
-	base_name = name
+	dropsound = 'sound/effects/drop_glass.ogg'
 
-/obj/item/weapon/reagent_containers/glass/examine(mob/user)
-	if(!..(user, 2))
-		return
-	if(reagents && reagents.reagent_list.len)
-		to_chat(user, "<span class='notice'>It contains [reagents.total_volume] units of liquid.</span>")
-	else
-		to_chat(user, "<span class='notice'>It is empty.</span>")
-	if(!is_open_container())
-		to_chat(user, "<span class='notice'>The airtight lid seals it completely.</span>")
+	New()
+		..()
+		base_name = name
 
-/obj/item/weapon/reagent_containers/glass/attack_self()
-	..()
-	if(is_open_container())
-		to_chat(usr, "<span class = 'notice'>You put the lid on \the [src].</span>")
-		atom_flags ^= ATOM_FLAG_OPEN_CONTAINER
-	else
-		to_chat(usr, "<span class = 'notice'>You take the lid off \the [src].</span>")
-		atom_flags |= ATOM_FLAG_OPEN_CONTAINER
-	update_icon()
+	examine(var/mob/user)
+		if (!..(user, 2))
+			return
+		if (reagents && reagents.reagent_list.len)
+			user << "<span class='notice'>It contains [reagents.total_volume] units of liquid.</span>"
+		else
+			user << "<span class='notice'>It is empty.</span>"
+		if (!is_open_container())
+			user << "<span class='notice'>Airtight lid seals it completely.</span>"
 
-/obj/item/weapon/reagent_containers/glass/attack(mob/M as mob, mob/user as mob, def_zone)
-	if(force && !(item_flags & ITEM_FLAG_NO_BLUDGEON) && user.a_intent == I_HURT)
-		return	..()
-	if(standard_feed_mob(user, M))
-		return
-	return 0
+	attack_self()
+		..()
+		if (is_open_container())
+			playsound(src,'sound/effects/Lid_Removal_Bottle_mono.wav',50,1)
+			usr << "<span class = 'notice'>You put the lid on \the [src].</span>"
+			flags ^= OPENCONTAINER
+		else
+			usr << "<span class = 'notice'>You take the lid off \the [src].</span>"
+			flags |= OPENCONTAINER
+		update_icon()
 
-/obj/item/weapon/reagent_containers/glass/standard_feed_mob(mob/user, mob/target)
-	if(!is_open_container())
-		to_chat(user, "<span class='notice'>You need to open \the [src] first.</span>")
-		return 1
-	if(user.a_intent == I_HURT)
-		return 1
-	return ..()
+	afterattack(var/obj/target, var/mob/user, var/flag)
 
-/obj/item/weapon/reagent_containers/glass/self_feed_message(mob/user)
-	to_chat(user, "<span class='notice'>You swallow a gulp from \the [src].</span>")
+		if (istype(target, /obj/structure/pot))
+			return
 
-/obj/item/weapon/reagent_containers/glass/afterattack(obj/target, mob/user, proximity)
-	if(!is_open_container() || !proximity) //Is the container open & are they next to whatever they're clicking?
-		return 1 //If not, do nothing.
-	for(var/type in can_be_placed_into) //Is it something it can be placed into?
-		if(istype(target, type))
-			return 1
-	if(standard_dispenser_refill(user, target)) //Are they clicking a water tank/some dispenser?
-		return 1
-	if(standard_pour_into(user, target)) //Pouring into another beaker?
-		return
-	return ..()
+		if (!is_open_container() || !flag)
+			return
+
+		for (var/type in can_be_placed_into)
+			if (istype(target, type))
+				return
+
+		if (standard_splash_mob(user, target))
+			return
+		if (standard_dispenser_refill(user, target))
+			return
+		if (standard_pour_into(user, target))
+			return
+
+		if (reagents.total_volume)
+			playsound(src,'sound/effects/Splash_Small_01_mono.wav',50,1)
+			user << "<span class='notice'>You splash the solution onto [target].</span>"
+			reagents.splash(target, reagents.total_volume)
+			return
+
+	attackby(obj/item/weapon/W as obj, mob/user as mob)
+		if (istype(W, /obj/item/weapon/pen) || istype(W, /obj/item/flashlight/pen))
+			var/tmp_label = sanitizeSafe(input(user, "Enter a label for [name]", "Label", label_text), MAX_NAME_LEN)
+			if (length(tmp_label) > 10)
+				user << "<span class='notice'>The label can be at most 10 characters long.</span>"
+			else
+				user << "<span class='notice'>You set the label to \"[tmp_label]\".</span>"
+				label_text = tmp_label
+				update_name_label()
+
+	proc/update_name_label()
+		playsound(src,'sound/effects/PEN_Ball_Point_Pen_Circling_01_mono.wav',40,1)
+		if (label_text == "")
+			name = base_name
+		else
+			name = "[base_name] ([label_text])"
 
 /obj/item/weapon/reagent_containers/glass/beaker
 	name = "beaker"
@@ -105,8 +115,7 @@
 	icon = 'icons/obj/chemical.dmi'
 	icon_state = "beaker"
 	item_state = "beaker"
-	center_of_mass = "x=15;y=10"
-	matter = list(MATERIAL_GLASS = 500)
+	matter = list("glass" = 500)
 
 	New()
 		..()
@@ -117,10 +126,12 @@
 
 	pickup(mob/user)
 		..()
+		playsound(src,'sound/items/Glass_Fragment_take.wav',50,1)
 		update_icon()
 
 	dropped(mob/user)
 		..()
+		playsound(src,'sound/items/Glass_Fragment_drop.wav',50,1)
 		update_icon()
 
 	attack_hand()
@@ -130,18 +141,18 @@
 	update_icon()
 		overlays.Cut()
 
-		if(reagents.total_volume)
+		if (reagents.total_volume)
 			var/image/filling = image('icons/obj/reagentfillings.dmi', src, "[icon_state]10")
 
 			var/percent = round((reagents.total_volume / volume) * 100)
 			switch(percent)
-				if(0 to 9)		filling.icon_state = "[icon_state]-10"
-				if(10 to 24) 	filling.icon_state = "[icon_state]10"
-				if(25 to 49)	filling.icon_state = "[icon_state]25"
-				if(50 to 74)	filling.icon_state = "[icon_state]50"
-				if(75 to 79)	filling.icon_state = "[icon_state]75"
-				if(80 to 90)	filling.icon_state = "[icon_state]80"
-				if(91 to INFINITY)	filling.icon_state = "[icon_state]100"
+				if (0 to 9)		filling.icon_state = "[icon_state]-10"
+				if (10 to 24) 	filling.icon_state = "[icon_state]10"
+				if (25 to 49)	filling.icon_state = "[icon_state]25"
+				if (50 to 74)	filling.icon_state = "[icon_state]50"
+				if (75 to 79)	filling.icon_state = "[icon_state]75"
+				if (80 to 90)	filling.icon_state = "[icon_state]80"
+				if (91 to INFINITY)	filling.icon_state = "[icon_state]100"
 
 			filling.color = reagents.get_color()
 			overlays += filling
@@ -154,56 +165,51 @@
 	name = "large beaker"
 	desc = "A large beaker."
 	icon_state = "beakerlarge"
-	center_of_mass = "x=16;y=10"
-	matter = list(MATERIAL_GLASS = 5000)
+	matter = list("glass" = 5000)
 	volume = 120
 	amount_per_transfer_from_this = 10
-	possible_transfer_amounts = "5;10;15;25;30;60;120"
-	atom_flags = ATOM_FLAG_OPEN_CONTAINER
+	possible_transfer_amounts = list(5,10,15,25,30,60,120)
+	flags = OPENCONTAINER
 
 /obj/item/weapon/reagent_containers/glass/beaker/noreact
 	name = "cryostasis beaker"
 	desc = "A cryostasis beaker that allows for chemical storage without reactions."
 	icon_state = "beakernoreact"
-	center_of_mass = "x=16;y=8"
-	matter = list(MATERIAL_GLASS = 500)
+	matter = list("glass" = 500)
 	volume = 60
 	amount_per_transfer_from_this = 10
-	atom_flags = ATOM_FLAG_OPEN_CONTAINER | ATOM_FLAG_NO_REACT
+	flags = OPENCONTAINER | NOREACT
 
 /obj/item/weapon/reagent_containers/glass/beaker/bluespace
 	name = "bluespace beaker"
 	desc = "A bluespace beaker, powered by experimental bluespace technology."
 	icon_state = "beakerbluespace"
-	center_of_mass = "x=16;y=10"
-	matter = list(MATERIAL_GLASS = 5000)
+	matter = list("glass" = 5000)
 	volume = 300
 	amount_per_transfer_from_this = 10
-	possible_transfer_amounts = "5;10;15;25;30;60;120;150;200;250;300"
-	atom_flags = ATOM_FLAG_OPEN_CONTAINER
+	possible_transfer_amounts = list(5,10,15,25,30,60,120,300)
+	flags = OPENCONTAINER
 
 /obj/item/weapon/reagent_containers/glass/beaker/vial
 	name = "vial"
 	desc = "A small glass vial."
 	icon_state = "vial"
-	center_of_mass = "x=15;y=8"
-	matter = list(MATERIAL_GLASS = 250)
+	matter = list("glass" = 250)
 	volume = 30
-	w_class = ITEM_SIZE_TINY //half the volume of a bottle, half the size
 	amount_per_transfer_from_this = 10
-	possible_transfer_amounts = "5;10;15;30"
-	atom_flags = ATOM_FLAG_OPEN_CONTAINER
+	possible_transfer_amounts = list(5,10,15,25)
+	flags = OPENCONTAINER
 
 /obj/item/weapon/reagent_containers/glass/beaker/cryoxadone
 	New()
 		..()
-		reagents.add_reagent(/datum/reagent/cryoxadone, 30)
+		reagents.add_reagent("cryoxadone", 30)
 		update_icon()
 
 /obj/item/weapon/reagent_containers/glass/beaker/sulphuric
 	New()
 		..()
-		reagents.add_reagent(/datum/reagent/acid, 60)
+		reagents.add_reagent("sacid", 60)
 		update_icon()
 
 /obj/item/weapon/reagent_containers/glass/bucket
@@ -212,37 +218,30 @@
 	icon = 'icons/obj/janitor.dmi'
 	icon_state = "bucket"
 	item_state = "bucket"
-	center_of_mass = "x=16;y=9"
-	matter = list(MATERIAL_STEEL = 280)
-	w_class = ITEM_SIZE_NORMAL
+	matter = list(DEFAULT_WALL_MATERIAL = 200)
+	w_class = 3.0
 	amount_per_transfer_from_this = 20
-	possible_transfer_amounts = "10;20;30;60;120;150;180"
-	volume = 180
-	atom_flags = ATOM_FLAG_OPEN_CONTAINER
-	unacidable = 0
+	possible_transfer_amounts = list(10,20,30,60,120)
+	volume = 120
+	flags = OPENCONTAINER
 
-/obj/item/weapon/reagent_containers/glass/bucket/attackby(obj/D, mob/user as mob)
+/obj/item/weapon/reagent_containers/glass/bucket/attackby(var/obj/D, mob/user as mob)
 
-	if(isprox(D))
-		to_chat(user, "You add [D] to [src].")
-		qdel(D)
-		user.put_in_hands(new /obj/item/weapon/bucket_sensor)
-		user.drop_from_inventory(src)
-		qdel(src)
-		return
-	else if(istype(D, /obj/item/weapon/mop))
-		if(reagents.total_volume < 1)
-			to_chat(user, "<span class='warning'>\The [src] is empty!</span>")
+	if (istype(D, /obj/item/weapon/mop))
+		if (reagents.total_volume < 1)
+			user << "<span class='warning'>\The [src] is empty!</span>"
 		else
 			reagents.trans_to_obj(D, 5)
-			to_chat(user, "<span class='notice'>You wet \the [D] in \the [src].</span>")
-			playsound(loc, 'sound/effects/slosh.ogg', 25, 1)
+			user << "<span class='notice'>You wet \the [D] in \the [src].</span>"
+			playsound(loc, 'sound/effects/slosh.ogg', 25, TRUE)
 		return
 	else
 		return ..()
 
 /obj/item/weapon/reagent_containers/glass/bucket/update_icon()
 	overlays.Cut()
+	if (reagents.total_volume >= 1)
+		overlays += "water_bucket"
 	if (!is_open_container())
 		var/image/lid = image(icon, src, "lid_[initial(icon_state)]")
 		overlays += lid
@@ -256,12 +255,12 @@
 	volume = 100
 
 	on_reagent_change()
-		switch(src.reagents.total_volume)
-			if(0)
+		switch(reagents.total_volume)
+			if (0)
 				icon_state = "blender_jug_e"
-			if(1 to 75)
+			if (1 to 75)
 				icon_state = "blender_jug_h"
-			if(76 to 100)
+			if (76 to 100)
 				icon_state = "blender_jug_f"
 
 /obj/item/weapon/reagent_containers/glass/canister		//not used apparantly
@@ -271,10 +270,10 @@
 	icon_state = "canister"
 	item_state = "canister"
 	m_amt = 300
-	g_amt = 0
-	w_class = ITEM_SIZE_HUGE
+	g_amt = FALSE
+	w_class = 4.0
 
 	amount_per_transfer_from_this = 20
-	possible_transfer_amounts = "10;20;30;60"
+	possible_transfer_amounts = list(10,20,30,60)
 	volume = 120
 */

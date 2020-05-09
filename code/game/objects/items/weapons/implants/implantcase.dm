@@ -6,68 +6,63 @@
 	icon = 'icons/obj/items.dmi'
 	icon_state = "implantcase-0"
 	item_state = "implantcase"
-	throw_speed = 1
+	throw_speed = TRUE
 	throw_range = 5
-	w_class = ITEM_SIZE_TINY
-	var/obj/item/weapon/implant/imp = null
+	w_class = 1.0
+	var/obj/item/weapon/implant/implant = null
+	var/implant_type = null
 
 /obj/item/weapon/implantcase/New()
-	if(ispath(imp))
-		imp = new imp(src)
-		update_description()
+	implant = new implant_type(src)
 	..()
-	update_icon()
+	return
 
-/obj/item/weapon/implantcase/proc/update_description()
-	if (imp)
-		desc = "A case containing \a [imp]."
-		origin_tech = imp.origin_tech
-	else
-		desc = "A case for implants."
-		origin_tech.Cut()
-
-/obj/item/weapon/implantcase/update_icon()
-	if (imp)
-		icon_state = "implantcase-[imp.implant_color]"
+/obj/item/weapon/implantcase/proc/update()
+	if (implant)
+		icon_state = text("implantcase-[]", implant.implant_color)
 	else
 		icon_state = "implantcase-0"
 	return
 
-/obj/item/weapon/implantcase/attackby(obj/item/weapon/I, mob/user)
+/obj/item/weapon/implantcase/attackby(obj/item/weapon/I as obj, mob/user as mob)
+	..()
 	if (istype(I, /obj/item/weapon/pen))
-		var/t = input(user, "What would you like the label to be?", src.name, null)
+		var/t = input(user, "What would you like the label to be?", text("[]", name), null)  as text
 		if (user.get_active_hand() != I)
 			return
 		if((!in_range(src, usr) && loc != user))
 			return
 		t = sanitizeSafe(t, MAX_NAME_LEN)
 		if(t)
-			SetName("glass case - '[t]'")
-			desc = "A case containing \a [t] implant."
+			name = text("Glass Case - '[]'", t)
 		else
-			SetName(initial(name))
-			desc = "A case containing an implant."
+			name = "Glass Case"
 	else if(istype(I, /obj/item/weapon/reagent_containers/syringe))
-		if(istype(imp,/obj/item/weapon/implant/chem))
-			imp.attackby(I,user)
+		if(!implant)	return
+		if(!implant.allow_reagents)	return
+		if(implant.reagents.total_volume >= implant.reagents.maximum_volume)
+			user << "<span class='warning'>\The [src] is full.</span>"
+		else
+			spawn(5)
+				I.reagents.trans_to_obj(implant, 5)
+				user << "<span class='notice'>You inject 5 units of the solution. The syringe now contains [I.reagents.total_volume] units.</span>"
 	else if (istype(I, /obj/item/weapon/implanter))
 		var/obj/item/weapon/implanter/M = I
-		if (M.imp && !imp && !M.imp.implanted)
-			M.imp.forceMove(src)
-			imp = M.imp
-			M.imp = null
-		else if (imp && !M.imp)
-			imp.forceMove(M)
-			M.imp = src.imp
-			imp = null
-		update_description()
-		update_icon()
-		M.update_icon()
-	else if (istype(I, /obj/item/weapon/implant))
-		to_chat(usr, "<span class='notice'>You slide \the [I] into \the [src].</span>")
-		user.drop_from_inventory(I,src)
-		imp = I
-		update_description()
-		update_icon()
-	else
-		return ..()
+		if (M.implant)
+			if ((implant || M.implant.implanted))
+				return
+			M.implant.loc = src
+			implant = M.implant
+			M.implant = null
+			update()
+			M.update()
+		else
+			if (implant)
+				if (M.implant)
+					return
+				implant.loc = M
+				M.implant = implant
+				implant = null
+				update()
+			M.update()
+	return

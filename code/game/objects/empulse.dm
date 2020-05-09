@@ -5,57 +5,48 @@
 // #define EMPDEBUG 10
 
 proc/empulse(turf/epicenter, heavy_range, light_range, log=0)
-	if(!epicenter) return
+	if (!epicenter) return
 
-	if(!istype(epicenter, /turf))
+	if (!istype(epicenter, /turf))
 		epicenter = get_turf(epicenter.loc)
 
-	if(log)
+	if (log)
 		message_admins("EMP with size ([heavy_range], [light_range]) in area [epicenter.loc.name] ")
 		log_game("EMP with size ([heavy_range], [light_range]) in area [epicenter.loc.name] ")
 
-	if(heavy_range > 1)
-		var/obj/effect/overlay/pulse = new /obj/effect/overlay(epicenter)
+	if (heavy_range > 1)
+		var/obj/effect/overlay/pulse = PoolOrNew(/obj/effect/overlay, epicenter)
 		pulse.icon = 'icons/effects/effects.dmi'
 		pulse.icon_state = "emppulse"
-		pulse.SetName("emp pulse")
-		pulse.anchored = 1
+		pulse.name = "emp pulse"
+		pulse.anchored = TRUE
 		spawn(20)
 			qdel(pulse)
 
-	if(heavy_range > light_range)
+	if (heavy_range > light_range)
 		light_range = heavy_range
 
-	for(var/mob/M in range(heavy_range, epicenter))
-		M.playsound_local(epicenter, "electric_explosion", rand(80, 100))
+	for (var/mob/M in range(heavy_range, epicenter))
+		M << 'sound/effects/EMPulse.ogg'
 
-		var/mob/living/carbon/human/H = M
-		// Take brain damage if the mob has neuromods
-		if (istype(H) && H.neuromods.len)
-			var/neuromods_modifier = max(1, (H.neuromods.len)**2 * 4)
-
-			if (neuromods_modifier > 1)
-				H.adjustBrainLoss(neuromods_modifier)
-
-	for(var/atom/T in range(light_range, epicenter))
+	for (var/atom/T in range(light_range, epicenter))
 		#ifdef EMPDEBUG
 		var/time = world.timeofday
 		#endif
 		var/distance = get_dist(epicenter, T)
-		if(distance < 0)
-			distance = 0
-		if(distance < heavy_range)
+		if (distance < 0)
+			distance = FALSE
+		if (distance < heavy_range)
 			T.emp_act(1)
-		// TODO[V] Remove out redundant logic here
-		else if(distance == heavy_range)
-			if(prob(50))
+		else if (distance == heavy_range)
+			if (prob(50))
 				T.emp_act(1)
 			else
 				T.emp_act(2)
-		else if(distance <= light_range)
+		else if (distance <= light_range)
 			T.emp_act(2)
 		#ifdef EMPDEBUG
-		if((world.timeofday - time) >= EMPDEBUG)
+		if ((world.timeofday - time) >= EMPDEBUG)
 			log_and_message_admins("EMPDEBUG: [T.name] - [T.type] - took [world.timeofday - time]ds to process emp_act()!")
 		#endif
-	return 1
+	return TRUE

@@ -6,39 +6,44 @@
 	var/maxHealth = 100 //Maximum health that should be possible.
 	var/health = 100 	//A mob's health
 
-	var/hud_updateflag = 0
+	var/inventory_shown = TRUE
 
-	//Damage related vars, NOTE: THESE SHOULD ONLY BE MODIFIED BY PROCS // what a joke
-	//var/bruteloss = 0 //Brutal damage caused by brute force (punching, being clubbed by a toolbox ect... this also accounts for pressure damage)
-	//var/oxyloss = 0   //Oxygen depravation damage (no air in lungs)
-	//var/toxloss = 0   //Toxic damage caused by being poisoned or radiated
-	//var/fireloss = 0  //Burn damage caused by being way too hot, too cold or burnt.
-	//var/halloss = 0   //Hallucination damage. 'Fake' damage obtained through hallucinating or the holodeck. Sleeping should cause it to wear off.
+	//Damage related vars, NOTE: THESE SHOULD ONLY BE MODIFIED BY PROCS
+	var/bruteloss = 0.0	//Brutal damage caused by brute force (punching, being clubbed by a toolbox ect... this also accounts for pressure damage)
+	var/oxyloss = 0.0	//Oxygen depravation damage (no air in lungs)
+	var/toxloss = 0.0	//Toxic damage caused by being poisoned or radiated
+	var/fireloss = 0.0	//Burn damage caused by being way too hot, too cold or burnt.
+	var/cloneloss = FALSE	//Damage caused by being cloned or ejected from the cloner early. slimes also deal cloneloss damage to victims
+	var/brainloss = FALSE	//'Retardation' damage caused by someone hitting you in the head with a bible or being infected with brainrot.
+	var/halloss = FALSE		//Hallucination damage. 'Fake' damage obtained through hallucinating or the holodeck. Sleeping should cause it to wear off.
 
-	var/last_special = 0 //Used by the resist verb, likely used to prevent players from bypassing next_move by logging in/out.
 
-	var/t_phoron = null
+	var/hallucination = FALSE //Directly affects how long a mob will hallucinate for
+	var/list/atom/hallucinations = list() //A list of hallucinated people that try to attack the mob. See /obj/effect/fake_attacker in hallucinations.dm
+
+	var/last_special = FALSE //Used by the resist verb, likely used to prevent players from bypassing next_move by logging in/out.
+
+	var/t_plasma = null
 	var/t_oxygen = null
 	var/t_sl_gas = null
 	var/t_n2 = null
 
 	var/now_pushing = null
-	var/mob_bump_flag = 0
-	var/mob_swap_flags = 0
-	var/mob_push_flags = 0
-	var/mob_always_swap = 0
+	var/mob_bump_flag = FALSE
+	var/mob_swap_flags = FALSE
+	var/mob_push_flags = FALSE
+	var/mob_always_swap = FALSE
 
 	var/mob/living/cameraFollow = null
 	var/list/datum/action/actions = list()
 
-	var/update_slimes = 1
+	var/tod = null // Time of death
+	var/update_slimes = TRUE
 	var/silent = null 		// Can't talk. Value goes down every life proc.
-	var/on_fire = 0 //The "Are we on fire?" var
+	var/on_fire = FALSE //The "Are we on fire?" var
 	var/fire_stacks
-	var/hallucination = 0
-	var/strippingActions = 0 // count of stripping actions taking place now by this mob
 
-	var/failed_last_breath = 0 //This is used to determine if the mob failed a breath. If they did fail a brath, they will attempt to breathe each tick, otherwise just once per 4 ticks.
+	var/failed_last_breath = FALSE //This is used to determine if the mob failed a breath. If they did fail a brath, they will attempt to breathe each tick, otherwise just once per 4 ticks.
 	var/possession_candidate // Can be possessed by ghosts if unplayed.
 
 	var/eye_blind = null	//Carbon
@@ -46,14 +51,6 @@
 	var/ear_damage = null	//Carbon
 	var/stuttering = null	//Carbon
 	var/slurring = null		//Carbon
-	var/stammering = null
-	var/burrieng = null
-	var/lisping = null
+	var/lisp = null		//Carbon
 
-	var/job = null//Living
-	var/list/obj/aura/auras = null //Basically a catch-all aura/force-field thing.
-
-	var/obj/screen/cells = null
-	var/evasion = 0 // Makes attacks harder to land. Negative numbers increase hit chance.
-
-	var/controllable = FALSE // If ghosts can possess a mob without permissions
+	var/takes_less_damage = FALSE

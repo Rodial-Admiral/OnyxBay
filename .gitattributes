@@ -1,14 +1,17 @@
-# dmm map merger hook
-# needs additional setup, see tools/mapmerge/install.txt
-*.dmm merge=merge-dmm
+# Auto detect text files and perform LF normalization
+* text=auto
 
-# dmi icon merger hook
-# needs additional setup, see tools/dmitool/merging.txt
-*.dmi merge=merge-dmi
+# Custom for Visual Studio
+*.cs     diff=csharp
 
-# force changelog merging to use union
-html/changelog.html merge=union
-
-# Declare files that will always have CRLF line endings on checkout.
-*.dm text eol=crlf
-*.dmm text eol=crlf
+# Standard to msysgit
+*.doc	 diff=astextplain
+*.DOC	 diff=astextplain
+*.docx diff=astextplain
+*.DOCX diff=astextplain
+*.dot  diff=astextplain
+*.DOT  diff=astextplain
+*.pdf  diff=astextplain
+*.PDF	 diff=astextplain
+*.rtf	 diff=astextplain
+*.RTF	 diff=astextplain

@@ -5,51 +5,49 @@
 	icon_state = "portal"
 	density = 1
 	unacidable = 1//Can't destroy energy portals.
+	var/failchance = 5
 	var/obj/item/target = null
 	var/creator = null
 	anchored = 1.0
-	var/dangerous = 0
-	var/failchance = 0
 
-/obj/effect/portal/Bumped(mob/M)
-	teleport(M)
-
-/obj/effect/portal/Crossed(AM)
-	teleport(AM)
-
-/obj/effect/portal/attack_hand(mob/user)
-	teleport(user)
-
-/obj/effect/portal/Initialize(mapload, end, delete_after = 300, failure_rate)
-	. = ..()
-	setup_portal(end, delete_after, failure_rate)
-
-/obj/effect/portal/Destroy()
-	target = null
-	return ..()
-
-/obj/effect/portal/proc/setup_portal(end, delete_after, failure_rate)
-	if(failure_rate)
-		failchance = failure_rate
-		if(prob(failchance))
-			icon_state = "portal1"
-			dangerous = 1
-	target = end
-	playsound(src, 'sound/effects/phasein.ogg', 25, 1)
-	QDEL_IN(src, delete_after)
-
-/obj/effect/portal/proc/teleport(atom/movable/M)
-	if(iseffect(M))
+/obj/effect/portal/Bumped(mob/M as mob|obj)
+	spawn(0)
+		src.teleport(M)
 		return
-	if(M.anchored && !ismech(M))
+	return
+
+/obj/effect/portal/Crossed(AM as mob|obj)
+	spawn(0)
+		src.teleport(AM)
 		return
-	if(!ismovable(M))
+	return
+
+/obj/effect/portal/attack_hand(mob/user as mob)
+	spawn(0)
+		src.teleport(user)
 		return
-	if (!target)
+	return
+
+/obj/effect/portal/New()
+	spawn(300)
 		qdel(src)
 		return
+	return
 
-	if(dangerous && prob(failchance))
-		do_teleport(M, locate(rand(TRANSITIONEDGE, world.maxx - TRANSITIONEDGE), rand(TRANSITIONEDGE, world.maxy -TRANSITIONEDGE), pick(GLOB.using_map.player_levels)), 0)
-	else
-		do_teleport(M, target, 1)
+/obj/effect/portal/proc/teleport(atom/movable/M as mob|obj)
+	if(istype(M, /obj/effect)) //sparks don't teleport
+		return
+	if (M.anchored&&istype(M, /obj/mecha))
+		return
+	if (icon_state == "portal1")
+		return
+	if (!( target ))
+		qdel(src)
+		return
+	if (istype(M, /atom/movable))
+		if(prob(failchance)) //oh dear a problem, put em in deep space
+			src.icon_state = "portal1"
+			do_teleport(M, locate(rand(5, world.maxx - 5), rand(5, world.maxy -5), 3), 0)
+		else
+			do_teleport(M, target, 1) ///You will appear adjacent to the beacon
+

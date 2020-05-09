@@ -5,139 +5,102 @@ var/global/list/image/ghost_sightless_images = list() //this is a list of images
 	name = "ghost"
 	desc = "It's a g-g-g-g-ghooooost!" //jinkies!
 	icon = 'icons/mob/mob.dmi'
-	icon_state = "ghost"
-	appearance_flags = KEEP_TOGETHER
-	canmove = 0
-	blinded = 0
-	anchored = 1	//  don't get pushed around
-	universal_speak = 1
-	var/is_manifest = FALSE
-	var/next_visibility_toggle = 0
+	icon_state = "ghost2"
+	canmove = FALSE
+	blinded = FALSE
+	anchored = TRUE	//  don't get pushed around
 	var/can_reenter_corpse
-	var/bootime = 0
-	var/started_as_observer //This variable is set to 1 when you enter the game as an observer.
-							//If you died in the game and are a ghost - this will remain as null.
+	var/datum/hud/living/carbon/hud = null // hud
+	var/bootime = FALSE
+	var/started_as_observer //This variable is set to TRUE when you enter the game as an observer.
+							//If you died in the game and are a ghsot - this will remain as null.
 							//Note that this is not a reliable way to determine if admins started as observers, since they change mobs a lot.
-	var/has_enabled_antagHUD = 0
-	var/medHUD = 0
-	var/antagHUD = 0
+	var/has_enabled_antagHUD = FALSE
+	var/medHUD = FALSE
+	var/antagHUD = FALSE
+	universal_speak = TRUE
 	var/atom/movable/following = null
-	var/admin_ghosted = 0
-	var/anonsay = 0
-	var/ghostvision = 1 //is the ghost able to see things humans can't?
-	var/seedarkness = 1
+	var/admin_ghosted = FALSE
+	var/anonsay = FALSE
+	var/ghostvision = TRUE //is the ghost able to see things humans can't?
+	var/seedarkness = TRUE
 
-	var/obj/item/device/multitool/ghost_multitool
-	incorporeal_move = 1
+	var/obj/item/multitool/ghost_multitool
+	incorporeal_move = TRUE
 
-	var/list/hud_images // A list of hud images
+	var/original_icon = null
+	var/list/original_overlays = list()
 
 /mob/observer/ghost/New(mob/body)
 	see_in_dark = 100
-	verbs += /mob/proc/toggle_antag_pool
-	verbs += /mob/proc/join_as_actor
-	verbs += /mob/proc/join_response_team
+	verbs += /mob/observer/ghost/proc/dead_tele
 
 	var/turf/T
-	if(ismob(body))
-		T = get_turf(body)               //Where is the body located?
-		attack_logs_ = body.attack_logs_ //preserve our attack logs by copying them to our ghost
+	if (ismob(body))
+		T = get_turf(body)				//Where is the body located?
+		attack_log = body.attack_log	//preserve our attack logs by copying them to our ghost
 
-		set_appearance(body)
-		if(body.mind && body.mind.name)
-			name = body.mind.name
+		if (ishuman(body))
+			icon = body:stand_icon
+			overlays = body:overlays_standing
+			original_icon = icon
+			original_overlays = body:overlays_standing
 		else
-			if(body.real_name)
-				name = body.real_name
+			icon = body.icon
+			icon_state = body.icon_state
+			original_icon = icon(icon, icon_state)
+			original_overlays = overlays
+
+		alpha = 127
+
+		gender = body.gender
+
+		if (body.real_name)
+			name = body.real_name
+		else
+			if (body.mind.name)
+				name = body.mind.name
 			else
-				if(gender == MALE)
-					name = capitalize(pick(GLOB.first_names_male)) + " " + capitalize(pick(GLOB.last_names))
+				if (gender == MALE)
+					name = capitalize(pick(first_names_male)) + " " + capitalize(pick(last_names))
 				else
-					name = capitalize(pick(GLOB.first_names_female)) + " " + capitalize(pick(GLOB.last_names))
+					name = capitalize(pick(first_names_female)) + " " + capitalize(pick(last_names))
 
 		mind = body.mind	//we don't transfer the mind but we keep a reference to it.
-	else
-		spawn(10) // wait for the observer mob to receive the client's key
-			mind = new /datum/mind(key)
-			mind.current = src
-	if(!T)	T = pick(GLOB.latejoin | GLOB.latejoin_cryo | GLOB.latejoin_gateway)			//Safety in case we cannot find the body's position
+
+	if (!T)	T = pick(latejoin_turfs["Ghost"])			//Safety in case we cannot find the body's position
 	forceMove(T)
 
-	if(!name)							//To prevent nameless ghosts
-		name = capitalize(pick(GLOB.first_names_male)) + " " + capitalize(pick(GLOB.last_names))
+	if (!name)							//To prevent nameless ghosts
+		name = capitalize(pick(first_names_male)) + " " + capitalize(pick(last_names))
 	real_name = name
 
-	if(GLOB.cult)
-		GLOB.cult.add_ghost_magic(src)
-
-	ghost_multitool = new(src)
-
-	GLOB.ghost_mob_list += src
+//	ghost_multitool = new(src)
 
 	..()
 
 /mob/observer/ghost/Destroy()
-	GLOB.ghost_mob_list -= src
 	stop_following()
-	qdel(ghost_multitool)
-	ghost_multitool = null
-	if(hud_images)
-		for(var/image/I in hud_images)
-			show_hud_icon(I.icon_state, FALSE)
-		hud_images = null
+//	qdel(ghost_multitool)
+//	ghost_multitool = null
 	return ..()
 
 /mob/observer/ghost/Topic(href, href_list)
-	if(src != usr)
-		href_exploit(ckey, href)
-		return
-
 	if (href_list["track"])
-		if(istype(href_list["track"],/mob))
-			var/mob/target = locate(href_list["track"]) in SSmobs.mob_list
-			if(target)
-				ManualFollow(target)
+		if (istype(href_list["track"],/mob))
+			var/mob/target = locate(href_list["track"]) in mob_list
+			if (target)
+				if (target.real_name == "Supply Announcements")
+					follow_supplytrain_proc()
+				else
+					ManualFollow(target)
 		else
 			var/atom/target = locate(href_list["track"])
-			if(istype(target))
+			if (istype(target))
 				ManualFollow(target)
 
-	if(href_list["possess"])
-		var/mob/living/target = locate(href_list["possess"]) in GLOB.living_mob_list_
-		if(isliving(target))
-			try_to_occupy(target)
-
-/mob/observer/ghost/proc/try_to_occupy(mob/living/L)
-	if(jobban_isbanned(src, "Animal"))
-		to_chat(src, SPAN_WARNING("You're banned from occupying mobs!"))
-		return
-	if(!L.controllable)
-		to_chat(src, SPAN_WARNING("[L] can't be occupied!"))
-		return
-	if(L.client || (L.ckey && copytext(L.ckey, 1, 2) == "@"))
-		to_chat(src, SPAN_WARNING("[L] is already occupied!"))
-		return
-	if(!MayRespawn(TRUE, isanimal(mind?.current) || isbot(mind?.current) ? DEAD_ANIMAL_DELAY : ANIMAL_SPAWN_DELAY))
-		return
-
-	log_and_message_admins("occupied clientless mob - ([L.type]) ([L]).", src, get_turf(L), L)
-
-	stop_following()
-	L.ckey = ckey
-	L.teleop = null
-	L.reload_fullscreen()
-	L.verbs |= /mob/living/proc/ghost
-	L.on_ghost_possess()
-
-/mob/observer/ghost/verb/ghost_possess(mob/living/M in GLOB.available_mobs_for_possess)
-	set name = "Ghost Possess"
-	set desc = "Occupy the mob"
-	set category = "Ghost"
-
-	if(M)
-		try_to_occupy(M)
-
-
+/mob/observer/ghost/attackby(obj/item/W, mob/user)
+	return FALSE
 /*
 Transfer_mind is there to check if mob is being deleted/not going to have a body.
 Works together with spawning an observer, noted above.
@@ -145,317 +108,565 @@ Works together with spawning an observer, noted above.
 
 /mob/observer/ghost/Life()
 	..()
-	if(!loc) return
-	if(!client) return 0
 
-	handle_hud_glasses()
+	if (!loc) return FALSE
+	if (!client) return FALSE
 
-	if(antagHUD)
+	if (client.images.len)
+		for (var/image/hud in client.images)
+			if (copytext(hud.icon_state,1,4) == "hud")
+				client.images.Remove(hud)
+/*
+	if (antagHUD)
 		var/list/target_list = list()
-		for(var/mob/living/target in oview(src, 14))
-			if(target.mind && target.mind.special_role)
+		for (var/mob/living/target in oview(src, 14))
+			if (target.mind && target.mind.special_role)
 				target_list += target
-		if(target_list.len)
-			assess_targets(target_list, src)
-	if(medHUD)
-		process_medHUD(src)
+		if (target_list.len)
+			assess_targets(target_list)
+			*/
+	if (medHUD)
+		process_medHUD()
 
+/mob/observer/ghost/proc/process_medHUD()
+	for (var/mob/living/carbon/human/patient in oview(src, 14))
+		client.images += patient.hud_list[HEALTH_HUD]
+		client.images += patient.hud_list[STATUS_HUD_OOC]
 
-/mob/observer/ghost/proc/process_medHUD(mob/M)
-	var/client/C = M.client
-	for(var/mob/living/carbon/human/patient in oview(M, 14))
-		C.images += patient.hud_list[HEALTH_HUD]
-		C.images += patient.hud_list[STATUS_HUD_OOC]
+/mob/observer/ghost/proc/assess_targets(list/target_list)
+	for (var/mob/living/carbon/human/target in target_list)
+		client.images += target.hud_list[SPECIALROLE_HUD]
+	return TRUE
 
-/mob/observer/ghost/proc/assess_targets(list/target_list, mob/observer/ghost/U)
-	var/client/C = U.client
-	for(var/mob/living/carbon/human/target in target_list)
-		C.images += target.hud_list[SPECIALROLE_HUD]
-	for(var/mob/living/silicon/target in target_list)
-		C.images += target.hud_list[SPECIALROLE_HUD]
-	return 1
+/mob/proc/ghostize(var/can_reenter_corpse = TRUE)
+	// don't create bad ghosts - Kachnov
+	if (!client)
+		return
 
-/mob/proc/ghostize(can_reenter_corpse = CORPSE_CAN_REENTER)
-	// Are we the body of an aghosted admin? If so, don't make a ghost.
-	if(teleop && istype(teleop, /mob/observer/ghost))
-		var/mob/observer/ghost/G = teleop
-		if(G.admin_ghosted)
-			return
-	if(key)
-		hide_fullscreens()
+	if (!lastKnownCkey)
+		return
+
+	src << browse(null, "window=memory")
+
+	// remove weather sounds
+	src << sound(null, channel = 778)
+	// remove ambient sounds
+	stop_ambience(src)
+	if (key)
 		var/mob/observer/ghost/ghost = new(src)	//Transfer safety to observer spawning proc.
 		ghost.can_reenter_corpse = can_reenter_corpse
-		ghost.timeofdeath = src.stat == DEAD ? src.timeofdeath : world.time
+		ghost.timeofdeath = stat == DEAD ? timeofdeath : world.time
 		ghost.key = key
-		if(ghost.client && !ghost.client.holder && !config.antag_hud_allowed)		// For new ghosts we remove the verb from even showing up if it's not allowed.
-			ghost.verbs -= /mob/observer/ghost/verb/toggle_antagHUD	// Poor guys, don't know what they are missing!
+		if (ishuman(src))
+			if (human_clients_mob_list.Find(src))
+				human_clients_mob_list -= src
 		return ghost
 
 /*
 This is the proc mobs get to turn into a ghost. Forked from ghostize due to compatibility issues.
 */
-/mob/living/proc/ghost()
+/mob/living/verb/ghost()
 	set category = "OOC"
 	set name = "Ghost"
-	set desc = "Leave your body and enter the land of the dead."
-	set hidden = 0
+	set desc = "Relinquish your life and enter the land of the dead."
 
-	if(stat == DEAD)
+	if (stat == DEAD)
+		if (client)
+			client.next_normal_respawn = world.realtime + (map ? map.respawn_delay : 3000)
+			client << RESPAWN_MESSAGE
+		if (ishuman(src))
+			var/mob/living/carbon/human/H = src
+			H.handle_zoom_stuff(TRUE)
 		announce_ghost_joinleave(ghostize(1))
-	else if(controllable)
-		ghostize(can_reenter_corpse = FALSE)
-	else if(istype(loc, /obj/machinery/cryopod))
+	else
 		var/response
-		if(config.respawn_delay)
-			response = alert(src, "Are you -sure- you want to ghost?\n(You are alive. If you ghost, you won't be able to play this round for another [config.respawn_delay] minute\s! You can't change your mind so choose wisely!)", "Are you sure you want to ghost?", "Ghost", "Stay in body")
+		if (client && client.holder)
+			response = WWinput(src, "You have the ability to Admin-Ghost. The regular Ghost verb will announce your presence to dead chat. Both variants will allow you to return to your body using 'aghost'.\n\nWhat do you wish to do?", "Are you sure you want to ghost?", "Ghost", list("Ghost", "Admin Ghost", "Stay in body"))
+			if (response == "Admin Ghost")
+				if (!client)
+					return
+				if (ishuman(src))
+					var/mob/living/carbon/human/H = src
+					H.handle_zoom_stuff(TRUE)
+				client.admin_ghost()
 		else
-			response = alert(src, "Are you -sure- you want to ghost?\n(You are alive. If you ghost, you won't be able to return to this body! You can't change your mind so choose wisely!)", "Are you sure you want to ghost?", "Ghost", "Stay in body")
-		if(response != "Ghost")
+			response = WWinput(src, "Are you sure you want to ghost?\n(You may respawn with the 'Respawn' verb in the IC tab)", "Are you sure you want to ghost?", "Ghost", list("Ghost", "Stay in body"))
+		if (response != "Ghost")
 			return
+		if (getTotalLoss() < (DAMAGE_HIGH*2) || restrained() || stat == CONSCIOUS)
+			src << "<span class = 'warning'>You can't ghost right now.</span>"
+			return
+		resting = TRUE
 		var/turf/location = get_turf(src)
-		log_and_message_admins(" has ghosted. (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[location.x];Y=[location.y];Z=[location.z]'>JMP</a>)")
+		if (ishuman(src))
+			var/mob/living/carbon/human/H = src
+			H.handle_zoom_stuff(TRUE)
+		if (client)
+			client.next_normal_respawn = world.realtime + (map ? map.respawn_delay : 3000)
+			client << RESPAWN_MESSAGE
+		message_admins("[key_name_admin(usr)] has ghosted. (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[location.x];Y=[location.y];Z=[location.z]'>JMP</a>)")
+		log_game("[key_name_admin(usr)] has ghosted.")
 		var/mob/observer/ghost/ghost = ghostize(0)	//0 parameter is so we can never re-enter our body, "Charlie, you can never come baaaack~" :3
 		ghost.timeofdeath = world.time // Because the living mob won't have a time of death and we want the respawn timer to work properly.
 		announce_ghost_joinleave(ghost)
 
-/mob/observer/ghost/can_use_hands()	return 0
-/mob/observer/ghost/is_active()		return 0
-
-/mob/observer/ghost/Stat()
-	. = ..()
-	if(statpanel("Status"))
-		if(evacuation_controller)
-			var/eta_status = evacuation_controller.get_status_panel_eta()
-			if(eta_status)
-				stat(null, eta_status)
+/mob/observer/ghost/can_use_hands()	return FALSE
+/mob/observer/ghost/is_active()		return FALSE
 
 /mob/observer/ghost/verb/reenter_corpse()
 	set category = "Ghost"
 	set name = "Re-enter Corpse"
-	if(!client)	return
-	if(!(mind && mind.current && can_reenter_corpse))
-		to_chat(src, "<span class='warning'>You have no body.</span>")
+	if (!client)	return
+	if (!(mind && mind.current && can_reenter_corpse))
+		src << "<span class='warning'>You have no body.</span>"
 		return
-	if(mind.current.key && copytext(mind.current.key,1,2)!="@")	//makes sure we don't accidentally kick any clients
-		to_chat(src, "<span class='warning'>Another consciousness is in your body... it is resisting you.</span>")
+	if (mind.current.key && copytext(mind.current.key,1,2)!="@")	//makes sure we don't accidentally kick any clients
+		usr << "<span class='warning'>Another consciousness is in your body... it is resisting you.</span>"
 		return
+
+	client.remove_ghost_only_admin_verbs()
+
 	stop_following()
+	mind.current.ajourn=0
 	mind.current.key = key
 	mind.current.teleop = null
-	mind.current.reload_fullscreen()
-	if(!admin_ghosted)
-		announce_ghost_joinleave(mind, 0, "They now occupy their body again.")
-	return 1
+
+	if (!admin_ghosted)
+		announce_ghost_joinleave(mind, FALSE, "They now occupy their body again.")
+
+	mind.current.regenerate_icons()
+
+	// workaround for language bug that happens when you're spawned in
+	var/mob/living/carbon/human/H = mind.current
+	if (istype(H))
+		if (!H.languages.Find(H.default_language))
+			H.languages.Insert(1, H.default_language)
+		human_clients_mob_list |= H
+		if (config.allow_selfheal)
+			H.verbs |= /mob/living/carbon/human/proc/selfheal
+			H.verbs |= /mob/living/carbon/human/proc/selfrevive
+
+	return TRUE
 
 /mob/observer/ghost/verb/toggle_medHUD()
 	set category = "Ghost"
 	set name = "Toggle MedicHUD"
 	set desc = "Toggles Medical HUD allowing you to see how everyone is doing"
-	if(!client)
+	if (!client)
 		return
-	if(medHUD)
-		medHUD = 0
-		to_chat(src, "<span class='notice'>Medical HUD Disabled</span>")
+	if (medHUD)
+		medHUD = FALSE
+		src << "<span class = 'notice'><b>Medical HUD Disabled</b></span>"
 	else
-		medHUD = 1
-		to_chat(src, "<span class='notice'>Medical HUD Enabled</span>")
-/mob/observer/ghost/verb/toggle_antagHUD()
-	set category = "Ghost"
-	set name = "Toggle AntagHUD"
-	set desc = "Toggles AntagHUD allowing you to see who is the antagonist"
+		medHUD = TRUE
+		src << "<span class = 'notice'><b>Medical HUD Enabled</b></span>"
 
-	if(!client)
-		return
-	var/mentor = is_mentor(usr.client)
-	if(!config.antag_hud_allowed && (!client.holder || mentor))
-		to_chat(src, "<span class='warning'>Admins have disabled this for this round.</span>")
-		return
-	var/mob/observer/ghost/M = src
-	if(jobban_isbanned(M, "AntagHUD"))
-		to_chat(src, "<span class='danger'>You have been banned from using this feature</span>")
-		return
-	if(config.antag_hud_restricted && !M.has_enabled_antagHUD && (!client.holder || mentor))
-		var/response = alert(src, "If you turn this on, you will not be able to take any part in the round.","Are you sure you want to turn this feature on?","Yes","No")
-		if(response == "No") return
-		M.can_reenter_corpse = 0
-	if(!M.has_enabled_antagHUD && (!client.holder || mentor))
-		M.has_enabled_antagHUD = 1
-	if(M.antagHUD)
-		M.antagHUD = 0
-		to_chat(src, "<span class='notice'>AntagHUD Disabled</span>")
-	else
-		M.antagHUD = 1
-		to_chat(src, "<span class='notice'>AntagHUD Enabled</span>")
-/mob/observer/ghost/verb/dead_tele(A in area_repository.get_areas_by_z_level())
+/mob/observer/ghost/proc/dead_tele(A in ghostteleportlocs)
 	set category = "Ghost"
 	set name = "Teleport"
 	set desc= "Teleport to a location"
-
-	var/area/thearea = area_repository.get_areas_by_z_level()[A]
-	if(!thearea)
-		to_chat(src, "No area available.")
+	if (!isghost(usr))
+		usr << "Not when you're not dead!"
 		return
 
-	var/list/area_turfs = get_area_turfs(thearea, shall_check_if_holy() ? list(/proc/is_holy_turf) : list())
-	if(!area_turfs.len)
-		to_chat(src, "<span class='warning'>This area has been entirely made into sacred grounds, you cannot enter it while you are in this plane of existence!</span>")
-		return
+	/*	this is dumb - Kachnov
+	usr.verbs -= /mob/observer/ghost/proc/dead_tele
+	spawn(5)
+		usr.verbs += /mob/observer/ghost/proc/dead_tele*/
 
-	ghost_to_turf(pick(area_turfs))
+	var/area/thearea = ghostteleportlocs[A]
+	if (!thearea)	return
 
-/mob/observer/ghost/verb/dead_tele_coord(tx as num, ty as num, tz as num)
-	set category = "Ghost"
-	set name = "Teleport to Coordinate"
-	set desc= "Teleport to a coordinate"
+	var/list/L = list()
 
-	var/turf/T = locate(tx, ty, tz)
-	if(T)
-		ghost_to_turf(T)
+	if (usr.invisibility <= SEE_INVISIBLE_LIVING)
+		for (var/turf/T in get_area_turfs(thearea.type))
+			L += T
 	else
-		to_chat(src, "<span class='warning'>Invalid coordinates.</span>")
-/mob/observer/ghost/verb/follow(datum/follow_holder/fh in get_follow_targets())
+		for (var/turf/T in get_area_turfs(thearea.type))
+			L+=T
+
+	if (!L || !L.len)
+		usr << "No area available."
+
+	stop_following()
+	usr.forceMove(pick(L))
+
+/mob/observer/ghost/verb/follow(input in getfitmobs()+"Cancel")
 	set category = "Ghost"
-	set name = "Follow"
+	set name = "Follow" // "Haunt"
 	set desc = "Follow and haunt a mob."
 
-	if(!fh.show_entry()) return
-	ManualFollow(fh.followed_instance)
+	if (input != "Cancel")
+		var/list/mobs = getfitmobs()
+		if (mobs[input])
+			ManualFollow(mobs[input])
 
-/mob/observer/ghost/proc/ghost_to_turf(turf/target_turf)
-	if(check_is_holy_turf(target_turf))
-		to_chat(src, "<span class='warning'>The target location is holy grounds!</span>")
-		return
-	stop_following()
-	forceMove(target_turf)
+/mob/observer/ghost/verb/follow_soviet(input in getfitmobs(SOVIET)+"Cancel")
+	set category = "Ghost"
+	set name = "Follow a Soviet"
+	set desc = "Follow and haunt a living Soviet."
+
+	if (input != "Cancel")
+		var/list/mobs = getfitmobs(SOVIET)
+		if (mobs[input])
+			ManualFollow(mobs[input])
+
+/mob/observer/ghost/verb/follow_german(input in getfitmobs(GERMAN)+"Cancel")
+	set category = "Ghost"
+	set name = "Follow a German"
+	set desc = "Follow and haunt a living German."
+
+	if (input != "Cancel")
+		var/list/mobs = getfitmobs(GERMAN)
+		if (mobs[input])
+			ManualFollow(mobs[input])
+
+/mob/observer/ghost/verb/follow_italian(input in getfitmobs(ITALIAN)+"Cancel")
+	set category = "Ghost"
+	set name = "Follow an Italian"
+	set desc = "Follow and haunt a living Italian."
+
+	if (input != "Cancel")
+		var/list/mobs = getfitmobs(ITALIAN)
+		if (mobs[input])
+			ManualFollow(mobs[input])
+
+/mob/observer/ghost/verb/follow_paratroopers(input in getfitmobs("PARATROOPERS")+"Cancel")
+	set category = "Ghost"
+	set name = "Follow a Paratrooper"
+	set desc = "Follow and haunt a living Paratrooper."
+
+	if (input != "Cancel")
+		var/list/mobs = getfitmobs("PARATROOPERS")
+		if (mobs[input])
+			ManualFollow(mobs[input])
+
+/mob/observer/ghost/verb/follow_ss(input in getfitmobs("SS")+"Cancel")
+	set category = "Ghost"
+	set name = "Follow a SS soldier"
+	set desc = "Follow and haunt a living SS soldier."
+
+	if (input != "Cancel")
+		var/list/mobs = getfitmobs("SS")
+		if (mobs[input])
+			ManualFollow(mobs[input])
+
+/mob/observer/ghost/verb/follow_partisan(input in getfitmobs(PARTISAN)+"Cancel")
+	set category = "Ghost"
+	set name = "Follow a Partisan"
+	set desc = "Follow and haunt a living Partisan."
+
+	if (input != "Cancel")
+		var/list/mobs = getfitmobs(PARTISAN)
+		if (mobs[input])
+			ManualFollow(mobs[input])
+
+/mob/observer/ghost/verb/follow_civilian(input in getfitmobs(CIVILIAN)+"Cancel")
+	set category = "Ghost"
+	set name = "Follow a Civilian"
+	set desc = "Follow and haunt a living Civilian."
+
+	if (input != "Cancel")
+		var/list/mobs = getfitmobs(CIVILIAN)
+		if (mobs[input])
+			ManualFollow(mobs[input])
+
+/mob/observer/ghost/verb/follow_undead(input in getfitmobs(PILLARMEN)+"Cancel")
+	set category = "Ghost"
+	set name = "Follow an Undead"
+	set desc = "Follow and haunt an Undead."
+
+	if (input != "Cancel")
+		var/list/mobs = getfitmobs(PILLARMEN)
+		if (mobs[input])
+			ManualFollow(mobs[input])
+
+/proc/getdogs()
+	var/list/dogs = list()
+	for (var/mob/living/simple_animal/complex_animal/canine/dog/D in living_mob_list)
+		var/name = D.name
+		var/nameinc = TRUE
+		var/oname = name
+		while (dogs.Find(name))
+			name = "[oname] ([++nameinc])"
+		dogs[name] = D
+	return dogs
+
+/mob/observer/ghost/verb/follow_dog(input in getdogs()+"Cancel")
+	set category = "Ghost"
+	set name = "Follow a Dog"
+	set desc = "Follow and haunt a living dog."
+
+	if (input != "Cancel")
+		ManualFollow(getdogs()[input])
+
+/mob/observer/ghost/verb/follow_train()
+	set category = "Ghost"
+	set name = "Jump to the Main Train"
+
+	var/oldloc = get_turf(src)
+
+	var/datum/train_controller/german_train_controller/tc = german_train_master
+
+	if (tc)
+		for (var/obj/train_car_center/tcc in tc.reverse_train_car_centers)
+			for (var/obj/train_pseudoturf/tpt in tcc.backwards_pseudoturfs) // start at the front
+				ManualFollow(tpt)
+				goto endloop // TRUE break statement is not enough
+
+		endloop
+
+		var/newloc = get_turf(src)
+
+		if (oldloc == newloc) // we didn't move: train isn't here
+			loc = locate(127, 454, TRUE) // take us to the train station
+
+/mob/observer/ghost/verb/follow_supplytrain()
+	set category = "Ghost"
+	set name = "Jump to the Supply Train"
+	follow_supplytrain_proc()
+
+/mob/observer/ghost/proc/follow_supplytrain_proc()
+
+	var/oldloc = get_turf(src)
+
+	var/datum/train_controller/german_supplytrain_controller/tc = german_supplytrain_master
+
+	if (tc)
+		if (tc.here)
+			for (var/obj/train_car_center/tcc in tc.reverse_train_car_centers)
+				for (var/obj/train_pseudoturf/tpt in tcc.backwards_pseudoturfs) // start at the front
+					ManualFollow(tpt)
+					goto endloop // TRUE break statement is not enough
+
+		endloop
+
+		var/newloc = get_turf(src)
+
+		if (oldloc == newloc) // we didn't move: train isn't here
+			loc = locate(15, 526, TRUE) // take us to the train station
+
+/mob/observer/ghost/verb/follow_supply_lift()
+	set category = "Ghost"
+	set name = "Jump to a Supply Lift"
+
+	var/list/options = list()
+
+	for (var/lift in lift_list)
+		var/obj/lift_controller/lc = lift
+		options += lc.jump_name
+
+	options += "CANCEL"
+	var/option = input("Which?") in options
+	if (option != "CANCEL")
+		for (var/lift in lift_list)
+			var/obj/lift_controller/lc = lift
+			if (lc.jump_name == option)
+				ManualFollow(lc)
+				break
+
+// FOLLOWING TANKS
+
+/proc/gettanks()
+	var/list/tanks = list()
+	for (var/T in tank_list)
+		var/atom/tank = T
+		var/count = FALSE
+		for (var/tank2 in tanks)
+			var/atom/other = tanks[tank2]
+			if (other.name == tank.name)
+				++count // tank, tank (1), tank (2), etc
+		tanks["[tank.name][count ? "([count])" : ""]"] = tank
+	return tanks
+
+/mob/observer/ghost/verb/follow_tank(input in gettanks())
+	set category = "Ghost"
+	set name = "Follow a Tank"
+
+	var/obj/tank/tank = gettanks()[input]
+	if (!tank) return
+	ManualFollow(tank)
+
+/mob/observer/ghost/verb/toggle_visibility()
+	set category = "Ghost"
+	set name = "Toggle Visibility"
+	if (!icon)
+		icon = original_icon
+		overlays = original_overlays
+		src << "<span class = 'good'>You are now visible again.</span>"
+	else
+		icon = null
+		overlays.Cut()
+		src << "<span class = 'good'>You are now invisible.</span>"
 
 // This is the ghost's follow verb with an argument
-/mob/observer/ghost/proc/ManualFollow(atom/movable/target)
-	if(!target || target == following || target == src)
+/mob/observer/ghost/proc/ManualFollow(var/atom/movable/target)
+	if (!target || target == following || target == src)
 		return
 
 	stop_following()
 	following = target
-	GLOB.moved_event.register(following, src, /atom/movable/proc/move_to_turf)
-	GLOB.dir_set_event.register(following, src, /atom/proc/recursive_dir_set)
-	GLOB.destroyed_event.register(following, src, /mob/observer/ghost/proc/stop_following)
+	moved_event.register(following, src, /atom/movable/proc/move_to_destination)
+	dir_set_event.register(following, src, /atom/proc/recursive_dir_set)
+	destroyed_event.register(following, src, /mob/observer/ghost/proc/stop_following)
 
-	to_chat(src, "<span class='notice'>Now following \the [following].</span>")
-	move_to_turf(following, loc, following.loc)
+	src << "<span class='notice'>Now following \the [following]</span>"
+
+	var/mob/living/carbon/human/H = target
+	if (istype(H) && H.real_name == "Supply Announcements")
+		follow_supplytrain_proc()
+	else
+		move_to_destination(following, following.loc, following.loc)
 
 /mob/observer/ghost/proc/stop_following()
-	if(following)
-		to_chat(src, "<span class='notice'>No longer following \the [following]</span>")
-		GLOB.moved_event.unregister(following, src)
-		GLOB.dir_set_event.unregister(following, src)
-		GLOB.destroyed_event.unregister(following, src)
+	if (following)
+		src << "<span class='notice'>No longer following \the [following]</span>"
+		moved_event.unregister(following, src)
+		dir_set_event.unregister(following, src)
+		destroyed_event.unregister(following, src)
 		following = null
 
-/mob/observer/ghost/move_to_turf(atom/movable/am, old_loc, new_loc)
+/mob/observer/ghost/move_to_destination(var/atom/movable/am, var/old_loc, var/new_loc)
 	var/turf/T = get_turf(new_loc)
-	if(check_is_holy_turf(T))
-		to_chat(src, "<span class='warning'>You cannot follow something standing on holy grounds!</span>")
+	if (check_holy(T))
+		usr << "<span class='warning'>You cannot follow something standing on holy grounds!</span>"
 		return
 	..()
 
+/mob/proc/check_holy(var/turf/T)
+	return FALSE
+
+/mob/observer/ghost/check_holy(var/turf/T)
+	if (check_rights(R_ADMIN|R_FUN, FALSE, src))
+		return FALSE
+	return FALSE
+
+/mob/observer/ghost/verb/jumptomob(target in getfitmobs() + "Cancel") //Moves the ghost instead of just changing the ghosts's eye -Nodrak
+	set category = "Ghost"
+	set name = "Jump to Mob"
+	set desc = "Teleport to a mob"
+
+	if (target == "Cancel") // also prevents sending the observer to nullspace when there are no mobs
+		return
+
+	if (isghost(usr)) //Make sure they're an observer!
+
+		if (!target)//Make sure we actually have a target
+			return
+		else
+			var/mob/M = getfitmobs()[target] //Destination mob
+			var/turf/T = get_turf(M) //Turf of the destination mob
+
+		//	if (T && isturf(T))	//Make sure the turf exists, then move the source to that destination.
+			stop_following()
+			forceMove(T)
+		//	else
+		//		src << "This mob is not located in the game world."
+
 /mob/observer/ghost/memory()
-	set hidden = 1
-	to_chat(src, "<span class='warning'>You are dead! You have no mind to store memory!</span>")
+	set hidden = TRUE
+	src << "<span class = 'red'>You are dead! You have no mind to store memory!</span>"
+
 /mob/observer/ghost/add_memory()
-	set hidden = 1
-	to_chat(src, "<span class='warning'>You are dead! You have no mind to store memory!</span>")
+	set hidden = TRUE
+	src << "<span class = 'red'>You are dead! You have no mind to store memory!</span>"
+
 /mob/observer/ghost/Post_Incorpmove()
 	stop_following()
 
-/mob/observer/ghost/verb/analyze_air()
-	set name = "Analyze Air"
+/*
+/mob/observer/ghost/verb/become_mouse()
+	set name = "Become mouse"
 	set category = "Ghost"
+	return FALSE
 
-	var/turf/t = get_turf(src)
-	if(t)
-		print_atmos_analysis(src, atmosanalyzer_scan(t))
+	if (config.disable_player_mice)
+		src << "<span class='warning'>Spawning as a mouse is currently disabled.</span>"
+		return
 
-/mob/observer/ghost/verb/check_radiation()
-	set name = "Check Radiation"
-	set category = "Ghost"
+	if (!MayRespawn(1, ANIMAL_SPAWN_DELAY))
+		return
 
-	var/turf/t = get_turf(src)
-	if(t)
-		var/rads = SSradiation.get_rads_at_turf(t)
-		to_chat(src, "<span class='notice'>Radiation level: [rads ? rads : "0"] Bq.</span>")
+	var/turf/T = get_turf(src)
+	if (!T || (T.z in config.admin_levels))
+		src << "<span class='warning'>You may not spawn as a mouse on this Z-level.</span>"
+		return
 
-/mob/observer/ghost/verb/view_manfiest()
-	set name = "Show Crew Manifest"
-	set category = "Ghost"
+	var/response = WWinput(src, "Are you sure you want to become a mouse?", "Become Mouse", "Yes", list("Yes", "No"))
+	if (response != "Squeek!") return  //Hit the wrong key...again.
 
-	var/dat
-	dat += "<h4>Crew Manifest</h4>"
-	dat += html_crew_manifest()
 
-	src << browse(dat, "window=manifest;size=370x420;can_close=1")
+	//find a viable mouse candidate
+	var/mob/living/simple_animal/mouse/host
+	var/obj/machinery/atmospherics/unary/vent_pump/vent_found
+	var/list/found_vents = list()
+	for (var/obj/machinery/atmospherics/unary/vent_pump/v in machines)
+		if (!v.welded && v.z == T.z)
+			found_vents.Add(v)
+	if (found_vents.len)
+		vent_found = pick(found_vents)
+		host = new /mob/living/simple_animal/mouse(vent_found.loc)
+	else
+		src << "<span class='warning'>Unable to find any unwelded vents to spawn mice at.</span>"
+
+	if (host)
+		if (config.uneducated_mice)
+			host.universal_understand = FALSE
+		announce_ghost_joinleave(src, FALSE, "They are now a mouse.")
+		host.ckey = ckey
+		host << "<span class='info'>You are now a mouse. Try to avoid interaction with players, and do not give hints away that you are more than a simple rodent.</span>"
+*/
+/*
 
 //This is called when a ghost is drag clicked to something.
 /mob/observer/ghost/MouseDrop(atom/over)
-	if(!usr || !over) return
-	if(isghost(usr) && usr.client && isliving(over))
+	if (!usr || !over) return
+	if (isghost(usr) && usr.client && isliving(over))
 		var/mob/living/M = over
 		// If they an admin, see if control can be resolved.
-		if(usr.client.holder && usr.client.holder.cmd_ghost_drag(src,M))
+		if (usr.client.holder && usr.client.holder.cmd_ghost_drag(src,M))
 			return
 		// Otherwise, see if we can possess the target.
-		if(usr == src && try_possession(M))
-			return
-	if(istype(over, /obj/machinery/drone_fabricator))
-		if(try_drone_spawn(src, over))
+		if (usr == src && try_possession(M))
 			return
 
 	return ..()
-
-/mob/observer/ghost/proc/try_possession(mob/living/M)
-	if(!config.ghosts_can_possess_animals)
-		to_chat(src, "<span class='warning'>Ghosts are not permitted to possess animals.</span>")
-		return 0
-	if(!M.can_be_possessed_by(src))
-		return 0
+*/
+/mob/observer/ghost/proc/try_possession(var/mob/living/M)
+	if (!config.ghosts_can_possess_animals)
+		usr << "<span class='warning'>Ghosts are not permitted to possess animals.</span>"
+		return FALSE
+	if (!M.can_be_possessed_by(src))
+		return FALSE
 	return M.do_possession(src)
 
-/mob/observer/ghost/pointed(atom/A as mob|obj|turf in view())
-	if(!..())
-		return 0
+/mob/observer/ghost/verb/pointed(atom/A as mob|obj|turf in view())
+	set category = "Ghost"
+	set name = "Point To"
 	usr.visible_message("<span class='deadsay'><b>[src]</b> points to [A]</span>")
-	return 1
+	return TRUE
 
-/mob/observer/ghost/proc/show_hud_icon(icon_state, make_visible)
-	if(!hud_images)
-		hud_images = list()
-	var/image/hud_image = hud_images[icon_state]
-	if(!hud_image)
-		hud_image = image('icons/mob/mob.dmi', loc = src, icon_state = icon_state)
-		hud_images[icon_state] = hud_image
-
-	if(make_visible)
-		add_client_image(hud_image)
-	else
-		remove_client_image(hud_image)
 
 /mob/observer/ghost/verb/toggle_anonsay()
 	set category = "Ghost"
 	set name = "Toggle Anonymous Chat"
 	set desc = "Toggles showing your key in dead chat."
 
-	src.anonsay = !src.anonsay
-	if(anonsay)
-		to_chat(src, "<span class='info'>Your key won't be shown when you speak in dead chat.</span>")
+	anonsay = !anonsay
+	if (anonsay)
+		src << "<span class='info'>Your key won't be shown when you speak in dead chat.</span>"
 	else
-		to_chat(src, "<span class='info'>Your key will be publicly visible again.</span>")
+		src << "<span class='info'>Your key will be publicly visible again.</span>"
 
 /mob/observer/ghost/canface()
-	return 1
+	return TRUE
 
 /mob/proc/can_admin_interact()
-	return 0
+    return FALSE
 
 /mob/observer/ghost/can_admin_interact()
-	return check_rights(R_ADMIN, 0, src)
+	return check_rights(R_ADMIN, FALSE, src)
 
 /mob/observer/ghost/verb/toggle_ghostsee()
 	set name = "Toggle Ghost Vision"
@@ -463,7 +674,8 @@ This is the proc mobs get to turn into a ghost. Forked from ghostize due to comp
 	set category = "Ghost"
 	ghostvision = !(ghostvision)
 	updateghostsight()
-	to_chat(src, "You [(ghostvision?"now":"no longer")] have ghost vision.")
+	usr << "You [(ghostvision?"now":"no longer")] have ghost vision."
+
 /mob/observer/ghost/verb/toggle_darkness()
 	set name = "Toggle Darkness"
 	set category = "Ghost"
@@ -472,9 +684,10 @@ This is the proc mobs get to turn into a ghost. Forked from ghostize due to comp
 
 /mob/observer/ghost/proc/updateghostsight()
 	if (!seedarkness)
-		set_see_invisible(SEE_INVISIBLE_NOLIGHTING)
+		see_invisible = SEE_INVISIBLE_OBSERVER_NOLIGHTING
 	else
-		set_see_invisible(ghostvision ? SEE_INVISIBLE_OBSERVER : SEE_INVISIBLE_LIVING)
+		see_invisible = ghostvision ? SEE_INVISIBLE_OBSERVER : SEE_INVISIBLE_LIVING
+
 	updateghostimages()
 
 /mob/observer/ghost/proc/updateghostimages()
@@ -482,85 +695,48 @@ This is the proc mobs get to turn into a ghost. Forked from ghostize due to comp
 		return
 	client.images -= ghost_sightless_images
 	client.images -= ghost_darkness_images
-	if(!seedarkness)
+	if (!seedarkness)
 		client.images |= ghost_sightless_images
-		if(ghostvision)
+		if (ghostvision)
 			client.images |= ghost_darkness_images
-	else if(seedarkness && !ghostvision)
+	else if (seedarkness && !ghostvision)
 		client.images |= ghost_sightless_images
 	client.images -= ghost_image //remove ourself
 
-/mob/observer/ghost/MayRespawn(feedback = FALSE, respawn_time = 0)
-	if(!client)
+/mob/observer/ghost/MayRespawn(var/feedback = FALSE, var/respawn_time = FALSE)
+	if (!client)
 		return FALSE
-	if(mind?.current && (mind.current in GLOB.living_mob_list_) && (can_reenter_corpse in list(CORPSE_CAN_REENTER, CORPSE_CAN_REENTER_AND_RESPAWN)))
-		if(feedback)
-			to_chat(src, SPAN_WARNING("Your non-dead body prevents you from respawning."))
+	if (mind && mind.current && mind.current.stat != DEAD && can_reenter_corpse)
+		if (feedback)
+			src << "<span class='warning'>Your non-dead body prevent you from respawning.</span>"
 		return FALSE
-	if(config.antag_hud_restricted && has_enabled_antagHUD == TRUE)
-		if(feedback)
-			to_chat(src, SPAN_WARNING("antagHUD restrictions prevent you from respawning."))
+	if (config.antag_hud_restricted && has_enabled_antagHUD == TRUE)
+		if (feedback)
+			src << "<span class='warning'>antagHUD restrictions prevent you from respawning.</span>"
 		return FALSE
 
 	var/timedifference = world.time - timeofdeath
-	if(!client.holder && respawn_time && timeofdeath && timedifference < respawn_time MINUTES)
+	if (respawn_time && timeofdeath && timedifference < respawn_time MINUTES)
 		var/timedifference_text = time2text(respawn_time MINUTES - timedifference,"mm:ss")
-		to_chat(src, SPAN_WARNING("You must have been dead for [respawn_time] minute\s to respawn. You have [timedifference_text] left."))
+		src << "<span class='warning'>You must have been dead for [respawn_time] minute\s to respawn. You have [timedifference_text] left.</span>"
 		return FALSE
 
 	return TRUE
 
-/proc/isghostmind(datum/mind/player)
-	return player && !isnewplayer(player.current) && (!player.current || isghost(player.current) || (isliving(player.current) && player.current.stat == DEAD) || !player.current.client)
+/atom/proc/extra_ghost_link()
+	return
 
-/mob/proc/check_is_holy_turf(turf/T)
-	return 0
+/mob/extra_ghost_link(var/atom/ghost)
+/*	if (client && eyeobj)
+		return "|<a href='byond://?src=\ref[ghost];track=\ref[eyeobj]'>eye</a>"
+*/
+	return null
 
-/mob/observer/ghost/check_is_holy_turf(turf/T)
-	if(shall_check_if_holy() && is_holy_turf(T))
-		return TRUE
+/mob/observer/ghost/extra_ghost_link(var/atom/ghost)
+	if (mind && mind.current)
+		return "|<a href='byond://?src=\ref[ghost];track=\ref[mind.current]'>body</a>"
 
-/mob/observer/ghost/proc/shall_check_if_holy()
-	if(invisibility >= INVISIBILITY_OBSERVER)
-		return FALSE
-	if(check_rights(R_ADMIN|R_FUN, 0, src))
-		return FALSE
-	return TRUE
-
-/mob/observer/ghost/proc/set_appearance(mob/target)
-	var/pre_alpha = alpha
-	var/pre_plane = plane
-	var/pre_layer = layer
-	var/pre_invis = invisibility
-
-	appearance = target
-	appearance_flags |= initial(appearance_flags)
-	alpha = pre_alpha
-	plane = pre_plane
-	layer = pre_layer
-	set_invisibility(pre_invis)
-	transform = null	//make goast stand up
-
-/mob/observer/ghost/verb/respawn()
-	set name = "Respawn"
-	set category = "OOC"
-
-	if (!(config.abandon_allowed))
-		to_chat(usr, "<span class='notice'>Respawn is disabled.</span>")
-		return
-	if (!SSticker.mode)
-		to_chat(usr, "<span class='notice'><B>You may not attempt to respawn yet.</B></span>")
-		return
-	if (SSticker.mode.deny_respawn)
-		to_chat(usr, "<span class='notice'>Respawn is disabled for this roundtype.</span>")
-		return
-	else if(!MayRespawn(1, config.respawn_delay))
-		return
-
-	to_chat(usr, "You can respawn now, enjoy your new life!")
-	to_chat(usr, "<span class='notice'><B>Make sure to play a different character, and please roleplay correctly!</B></span>")
-	announce_ghost_joinleave(client, 0)
-
-	var/mob/new_player/M = new /mob/new_player()
-	M.key = key
-	log_and_message_admins("has respawned.", M)
+/proc/ghost_follow_link(var/atom/target, var/atom/ghost)
+	if ((!target) || (!ghost)) return
+	. = "<a href='byond://?src=\ref[ghost];track=\ref[target]'>follow</a>"
+	. += target.extra_ghost_link(ghost)

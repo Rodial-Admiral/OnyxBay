@@ -1,13 +1,14 @@
 
 
-/mob/living/simple_animal/hostile/carp
-	name = "space carp"
-	desc = "A ferocious, fang-bearing creature that resembles a fish."
-	icon_state = "carp"
-	icon_living = "carp"
-	icon_dead = "carp_dead"
-	icon_gib = "carp_gib"
-	speak_chance = 0
+/mob/living/simple_animal/hostile/trainingbot
+	name = "training bot"
+	desc = "."
+	icon = "robots.dmi"
+	icon_state = "robot_old"
+	icon_living = "robot_old"
+	icon_dead = "gib1"
+	icon_gib = "gib1"
+	speak_chance = FALSE
 	turns_per_move = 5
 	meat_type = /obj/item/weapon/reagent_containers/food/snacks/carpmeat
 	response_help = "pets the"
@@ -24,26 +25,29 @@
 	attack_sound = 'sound/weapons/bite.ogg'
 
 	//Space carp aren't affected by atmos.
-	min_gas = null
-	max_gas = null
-	minbodytemp = 0
+	min_oxy = FALSE
+	max_oxy = FALSE
+	min_tox = FALSE
+	max_tox = FALSE
+	min_co2 = FALSE
+	max_co2 = FALSE
+	min_n2 = FALSE
+	max_n2 = FALSE
+	minbodytemp = FALSE
 
 	break_stuff_probability = 15
 
-	faction = "carp"
+	faction = "trainingbot"
 
-/mob/living/simple_animal/hostile/carp/Allow_Spacemove(check_drift = 0)
-	return 1	//No drifting in space for space carp!	//original comments do not steal
-
-/mob/living/simple_animal/hostile/carp/FindTarget()
+/mob/living/simple_animal/hostile/trainingbot/FindTarget()
 	. = ..()
-	if(.)
+	if (.)
 		custom_emote(1,"nashes at [.]")
 
-/mob/living/simple_animal/hostile/carp/AttackingTarget()
+/mob/living/simple_animal/hostile/trainingbot/AttackingTarget()
 	. =..()
 	var/mob/living/L = .
-	if(istype(L))
-		if(prob(15))
+	if (istype(L))
+		if (prob(15))
 			L.Weaken(3)
-			L.visible_message("<span class='danger'>\The [src] knocks down \the [L]!</span>")
+			L.visible_message("<span class='danger'>\the [src] knocks down \the [L]!</span>")

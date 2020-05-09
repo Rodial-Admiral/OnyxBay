@@ -3,49 +3,35 @@
 	desc = "Some rods. Can be used for building, or something."
 	singular_name = "metal rod"
 	icon_state = "rods"
-	obj_flags = OBJ_FLAG_CONDUCTIBLE
-	w_class = ITEM_SIZE_LARGE
-	force = 8.5
-	throwforce = 10.0
+	flags = CONDUCT
+	w_class = 3.0
+	force = WEAPON_FORCE_PAINFUL
+	throwforce = WEAPON_FORCE_PAINFUL
 	throw_speed = 5
 	throw_range = 20
-	mod_weight = 0.8
-	mod_reach = 1.0
-	mod_handy = 0.8
-	matter = list(MATERIAL_STEEL = 1000)
-	max_amount = 100
-	center_of_mass = null
+	matter = list(DEFAULT_WALL_MATERIAL = 1875)
+	max_amount = 60
 	attack_verb = list("hit", "bludgeoned", "whacked")
-	lock_picking_level = 3
-
-/obj/item/stack/rods/ten
-	amount = 10
-
-/obj/item/stack/rods/fifty
-	amount = 50
 
 /obj/item/stack/rods/cyborg
 	name = "metal rod synthesizer"
 	desc = "A device that makes metal rods."
 	gender = NEUTER
 	matter = null
-	uses_charge = 1
+	uses_charge = TRUE
 	charge_costs = list(500)
 	stacktype = /obj/item/stack/rods
 
-/obj/item/stack/rods/New()
-	..()
-	update_icon()
-
 /obj/item/stack/rods/attackby(obj/item/W as obj, mob/user as mob)
-	if(isWelder(W))
+	..()
+	if (istype(W, /obj/item/weapon/weldingtool))
 		var/obj/item/weapon/weldingtool/WT = W
 
-		if(get_amount() < 2)
-			to_chat(user, "<span class='warning'>You need at least two rods to do this.</span>")
+		if (get_amount() < 2)
+			user << "<span class='warning'>You need at least two rods to do this.</span>"
 			return
 
-		if(WT.remove_fuel(0,user))
+		if (WT.remove_fuel(0,user))
 			var/obj/item/stack/material/steel/new_item = new(usr.loc)
 			new_item.add_to_stacks(usr)
 			for (var/mob/M in viewers(src))
@@ -57,64 +43,37 @@
 			if (!R && replace)
 				user.put_in_hands(new_item)
 		return
-
-	if (istype(W, /obj/item/weapon/tape_roll))
-		var/obj/item/stack/medical/splint/ghetto/new_splint = new(user.loc)
-		new_splint.dropInto(loc)
-		new_splint.add_fingerprint(user)
-
-		user.visible_message("<span class='notice'>\The [user] constructs \a [new_splint] out of a [singular_name].</span>", \
-				"<span class='notice'>You use make \a [new_splint] out of a [singular_name].</span>")
-		src.use(1)
-		return
-
 	..()
 
 
 /obj/item/stack/rods/attack_self(mob/user as mob)
-	src.add_fingerprint(user)
+	add_fingerprint(user)
 
-	if(!istype(user.loc,/turf)) return 0
+	if (!istype(user.loc,/turf)) return FALSE
 
 	if (locate(/obj/structure/grille, usr.loc))
-		for(var/obj/structure/grille/G in usr.loc)
+		for (var/obj/structure/grille/G in usr.loc)
 			if (G.destroyed)
 				G.health = 10
-				G.set_density(1)
-				G.destroyed = 0
+				G.density = TRUE
+				G.destroyed = FALSE
 				G.icon_state = "grille"
 				use(1)
 			else
-				return 1
+				return TRUE
 
-	else if(!in_use)
-		if(get_amount() < 2)
-			to_chat(user, "<span class='warning'>You need at least two rods to do this.</span>")
+	else if (!in_use)
+		if (get_amount() < 2)
+			user << "<span class='warning'>You need at least two rods to do this.</span>"
 			return
-		to_chat(usr, "<span class='notice'>Assembling grille...</span>")
-		in_use = 1
+		usr << "<span class='notice'>Assembling grille...</span>"
+		in_use = TRUE
 		if (!do_after(usr, 10))
-			in_use = 0
+			in_use = FALSE
 			return
 		var/obj/structure/grille/F = new /obj/structure/grille/ ( usr.loc )
-		to_chat(usr, "<span class='notice'>You assemble a grille</span>")
-		in_use = 0
+		usr << "<span class='notice'>You assemble a grille</span>"
+		in_use = FALSE
 		F.add_fingerprint(usr)
 		use(2)
 	return
-
-/obj/item/stack/rods/update_icon()
-	if(amount == 1)
-		icon = 'icons/obj/weapons.dmi'
-		icon_state = "metal-rod"
-	else
-		icon = initial(icon)
-		icon_state = initial(icon_state)
-
-/obj/item/stack/rods/use()
-	. = ..()
-	update_icon()
-
-/obj/item/stack/rods/add()
-	. = ..()
-	update_icon()

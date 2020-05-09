@@ -4,23 +4,16 @@
 //Added by Jack Rost
 /obj/item/trash
 	icon = 'icons/obj/trash.dmi'
-	w_class = ITEM_SIZE_SMALL
+	w_class = 2.0
 	desc = "This is rubbish."
-	mod_reach = 0.25
-	mod_weight = 0.25
-	mod_handy = 0.25
 
 /obj/item/trash/raisins
 	name = "\improper 4no raisins"
-	icon_state = "4no_raisins"
+	icon_state= "4no_raisins"
 
 /obj/item/trash/candy
 	name = "candy"
-	icon_state = "candy"
-
-/obj/item/trash/candy/proteinbar
-	name = "protein bar"
-	icon_state = "proteinbar"
+	icon_state= "candy"
 
 /obj/item/trash/cheesie
 	name = "\improper Cheesie Honkers"
@@ -49,10 +42,16 @@
 /obj/item/trash/plate
 	name = "plate"
 	icon_state = "plate"
+	dropsound = 'sound/effects/drop_glass.ogg'
 
 /obj/item/trash/snack_bowl
-	name = "snack bowl"
-	icon_state	= "snack_bowl"
+	name = "bowl"
+	icon_state = "snack_bowl"
+	dropsound = 'sound/effects/drop_glass.ogg'
+
+/obj/item/trash/snack_bowl/New()
+	..()
+	pixel_x = rand(-5,5)
 
 /obj/item/trash/pistachios
 	name = "pistachios pack"
@@ -72,16 +71,17 @@
 	icon_state = "candle4"
 
 /obj/item/trash/liquidfood
-	name = "\improper \"LiquidFood\" MRE"
+	name = "\improper \"LiquidFood\" ration"
 	icon_state = "liquidfood"
 
 /obj/item/trash/tastybread
 	name = "bread tube"
 	icon_state = "tastybread"
 
-/obj/item/trash/hematogen
-	name = "Hema2Gen"
-	icon_state = "hema2gen"
+/obj/item/trash/money
+	name = "Money"
+	desc = "A pile of banknotes."
+	icon_state = "money"
 
 /obj/item/trash/attack(mob/M as mob, mob/living/user as mob)
 	return

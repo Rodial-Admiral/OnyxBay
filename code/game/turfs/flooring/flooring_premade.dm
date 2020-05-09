@@ -1,359 +1,370 @@
-// simulated/floor is currently plating by default, but there really should be an explicit plating type.
-/turf/simulated/floor/plating
-	name = "plating"
-	icon = 'icons/turf/flooring/plating.dmi'
-	icon_state = "plating"
-	layer = PLATING_LAYER
+/turf/floor/carpet
+	name = "carpet"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "carpet"
+	initial_flooring = /decl/flooring/carpet
 
+/turf/floor/carpet/bcarpet
+	name = "black carpet"
+	icon_state = "bcarpet"
+	initial_flooring = /decl/flooring/carpet/bcarpet
 
-//GRID FLOORING
+/turf/floor/carpet/blucarpet
+	name = "blue carpet"
+	icon_state = "blucarpet"
+	initial_flooring = /decl/flooring/carpet/blucarpet
 
-/turf/simulated/floor/grid
+/turf/floor/carpet/turcarpet
+	name = "tur carpet"
+	icon_state = "turcarpet"
+	initial_flooring = /decl/flooring/carpet/turcarpet
+
+/turf/floor/carpet/sblucarpet
+	name = "sblue carpet"
+	icon_state = "sblucarpet"
+	initial_flooring = /decl/flooring/carpet/sblucarpet
+
+/turf/floor/carpet/gaycarpet
+	name = "clown carpet"
+	icon_state = "gaycarpet"
+	initial_flooring = /decl/flooring/carpet/gaycarpet
+
+/turf/floor/carpet/purcarpet
+	name = "purple carpet"
+	icon_state = "purcarpet"
+	initial_flooring = /decl/flooring/carpet/purcarpet
+
+/turf/floor/carpet/oracarpet
+	name = "orange carpet"
+	icon_state = "oracarpet"
+	initial_flooring = /decl/flooring/carpet/oracarpet
+
+/turf/floor/bluegrid
 	name = "mainframe floor"
-	icon = 'icons/turf/flooring/circuit.dmi'
-	icon_state = "rcircuit"
-	initial_flooring = /decl/flooring/reinforced/circuit/red
-	light_range = 2
-	light_power = 2
-	light_color = COLOR_RED
-
-/turf/simulated/floor/grid/bluegrid
-	name = "mainframe floor"
-	icon = 'icons/turf/flooring/circuit.dmi'
+	icon = 'icons/turf/floors.dmi'
 	icon_state = "bcircuit"
 	initial_flooring = /decl/flooring/reinforced/circuit
-	light_range = 2
-	light_power = 3
-	light_color = COLOR_BLUE
 
-/turf/simulated/floor/grid/bluegrid/airless
-	initial_gas = null
-
-/turf/simulated/floor/grid/greengrid
+/turf/floor/greengrid
 	name = "mainframe floor"
-	icon = 'icons/turf/flooring/circuit.dmi'
+	icon = 'icons/turf/floors.dmi'
 	icon_state = "gcircuit"
 	initial_flooring = /decl/flooring/reinforced/circuit/green
-	light_range = 2
-	light_power = 3
-	light_color = COLOR_GREEN
 
-/turf/simulated/floor/grid/greengrid/airless
-	initial_gas = null
-
-
-//REINFORCED FLOORING
-
-/turf/simulated/floor/reinforced
-	name = "reinforced floor"
-	icon = 'icons/turf/flooring/tiles.dmi'
-	icon_state = "reinforced"
-	initial_flooring = /decl/flooring/reinforced
-
-/turf/simulated/floor/reinforced/airless
-	initial_gas = null
-
-/turf/simulated/floor/reinforced/airmix
-	initial_gas = list("oxygen" = MOLES_O2ATMOS, "nitrogen" = MOLES_N2ATMOS)
-
-/turf/simulated/floor/reinforced/nitrogen
-	initial_gas = list("nitrogen" = ATMOSTANK_NITROGEN)
-
-/turf/simulated/floor/reinforced/hydrogen
-	initial_gas = list("hydrogen" = ATMOSTANK_HYDROGEN)
-
-/turf/simulated/floor/reinforced/oxygen
-	initial_gas = list("oxygen" = ATMOSTANK_OXYGEN)
-
-/turf/simulated/floor/reinforced/phoron
-	initial_gas = list("phoron" = ATMOSTANK_PHORON)
-
-/turf/simulated/floor/reinforced/nitrogen/engine
-	name = "engine floor"
-	initial_gas = list("nitrogen" = MOLES_N2STANDARD)
-
-/turf/simulated/floor/reinforced/phoron/fuel
-	initial_gas = list("phoron" = ATMOSTANK_PHORON_FUEL)
-
-/turf/simulated/floor/reinforced/hydrogen
-	initial_gas = list("hydrogen" = ATMOSTANK_HYDROGEN)
-
-/turf/simulated/floor/reinforced/hydrogen/fuel
-	initial_gas = list("hydrogen" = ATMOSTANK_HYDROGEN_FUEL)
-
-/turf/simulated/floor/reinforced/carbon_dioxide
-	initial_gas = list("carbon_dioxide" = ATMOSTANK_CO2)
-
-/turf/simulated/floor/reinforced/n20
-	initial_gas = list("sleeping_agent" = ATMOSTANK_NITROUSOXIDE)
-
-
-//STATION FLOORING
-
-/turf/simulated/floor/tiled
-	name = "steel floor"
-	icon = 'icons/turf/flooring/tiles.dmi'
-	icon_state = "steel"
-	initial_flooring = /decl/flooring/tiling
-
-/turf/simulated/floor/tiled/dark
-	name = "dark floor"
-	icon_state = "dark"
-	initial_flooring = /decl/flooring/tiling/dark
-
-/turf/simulated/floor/tiled/dark/airless
-	initial_gas = null
-
-/turf/simulated/floor/tiled/white
-	name = "white floor"
-	icon_state = "white"
-	initial_flooring = /decl/flooring/tiling/white
-
-/turf/simulated/floor/tiled/brown
-	name = "brown tile floor"
-	icon_state = "brown"
-	initial_flooring = /decl/flooring/tiling/brown
-
-/turf/simulated/floor/tiled/freezer
-	name = "tiles"
-	icon_state = "freezer"
-	initial_flooring = /decl/flooring/tiling/freezer
-
-/turf/simulated/floor/tiled/dirty
-	name = "dirty floor"
-	icon_state = "steel_dirty"
-	initial_flooring = /decl/flooring/tiling/dirty
-
-
-//ATMOS PREMADES
-
-/turf/simulated/floor/reinforced/airless
-	name = "vacuum floor"
-	initial_gas = null
-	temperature = TCMB
-
-/turf/simulated/floor/plating/airless
-	name = "airless plating"
-	initial_gas = null
-	temperature = TCMB
-
-/turf/simulated/floor/tiled/airless
-	name = "airless floor"
-	initial_gas = null
-	temperature = TCMB
-
-/turf/simulated/floor/grid/bluegrid/airless
-	name = "airless floor"
-	initial_gas = null
-	temperature = TCMB
-
-/turf/simulated/floor/grid/greengrid/airless
-	name = "airless floor"
-	initial_gas = null
-	temperature = TCMB
-
-/turf/simulated/floor/grid/greengrid/nitrogen
-	initial_gas = list("nitrogen" = MOLES_N2STANDARD)
-
-/turf/simulated/floor/tiled/white/airless
-	name = "airless floor"
-	initial_gas = null
-	temperature = TCMB
-
-
-//INTERIOR FLOORING
-
-/turf/simulated/floor/trim
-	name = "interior flooring"
-	icon = 'icons/turf/flooring/linoleum.dmi'
-	icon_state = "lino"
-	initial_flooring = null
-
-/turf/simulated/floor/trim/lino
-	name = "lino"
-	icon = 'icons/turf/flooring/linoleum.dmi'
-	icon_state = "lino"
-	initial_flooring = /decl/flooring/linoleum
-
-
-/turf/simulated/floor/trim/wood
+/turf/floor/wood
 	name = "wooden floor"
-	icon = 'icons/turf/flooring/wood.dmi'
+	icon = 'icons/turf/floors.dmi'
 	icon_state = "wood"
 	initial_flooring = /decl/flooring/wood
 
-/turf/simulated/floor/trim/darkwood
-	name = "dark wooden floor"
-	icon_state = "darkwood"
-	icon = 'icons/turf/flooring/wood.dmi'
-	initial_flooring = /decl/flooring/darkwood
-
-/turf/simulated/floor/trim/wood/broken0
-	name = "wooden floor"
-	icon_state = "wood_broken0"
-	initial_flooring = /decl/flooring/wood/broken0
-
-/turf/simulated/floor/trim/wood/broken1
-	name = "wooden floor"
-	icon_state = "wood_broken1"
-	initial_flooring = /decl/flooring/wood/broken1
-
-/turf/simulated/floor/trim/wood/broken2
-	name = "wooden floor"
-	icon_state = "wood_broken2"
-	initial_flooring = /decl/flooring/wood/broken2
-
-/turf/simulated/floor/trim/wood/broken3
-	name = "wooden floor"
-	icon_state = "wood_broken3"
-	initial_flooring = /decl/flooring/wood/broken3
-
-/turf/simulated/floor/trim/wood/broken4
-	name = "wooden floor"
-	icon_state = "wood_broken4"
-	initial_flooring = /decl/flooring/wood/broken4
-
-/turf/simulated/floor/trim/wood/broken5
-	name = "wooden floor"
-	icon_state = "wood_broken5"
-	initial_flooring = /decl/flooring/wood/broken5
-
-/turf/simulated/floor/trim/wood/broken6
-	name = "wooden floor"
-	icon_state = "wood_broken6"
-	initial_flooring = /decl/flooring/wood/broken6
-
-
-/turf/simulated/floor/trim/carpet
-	name = "brown carpet"
-	icon = 'icons/turf/flooring/carpet.dmi'
-	icon_state = "brown"
-	initial_flooring = /decl/flooring/carpet
-
-/turf/simulated/floor/trim/carpet/arcade
-	name = "arcade carpet"
-	icon_state = "arcade"
-	initial_flooring = /decl/flooring/carpet/arcade
-
-/turf/simulated/floor/trim/carpet/blue
-	name = "blue carpet"
-	icon_state = "blue1"
-	initial_flooring = /decl/flooring/carpet/blue
-
-/turf/simulated/floor/trim/carpet/blue2
-	name = "pale blue carpet"
-	icon_state = "blue2"
-	initial_flooring = /decl/flooring/carpet/blue2
-
-/turf/simulated/floor/trim/carpet/oldred
-	name = "red carpet"
-	icon = 'icons/turf/flooring/carpet.dmi'
-	icon_state = "oldred"
-	initial_flooring = /decl/flooring/carpet/oldred
-
-/turf/simulated/floor/trim/carpet/purple
-	name = "purple carpet"
-	icon_state = "purple"
-	initial_flooring = /decl/flooring/carpet/purple
-
-/turf/simulated/floor/trim/carpet/orange
-	name = "orange carpet"
-	icon_state = "orange"
-	initial_flooring = /decl/flooring/carpet/orange
-
-/turf/simulated/floor/trim/carpet/green
-	name = "green carpet"
-	icon_state = "green"
-	initial_flooring = /decl/flooring/carpet/green
-
-/turf/simulated/floor/trim/carpet/red
-	name = "red carpet"
-	icon_state = "red"
-	initial_flooring = /decl/flooring/carpet/red
-
-
-//NATURAL FLOORING
-
-/turf/simulated/floor/natural
-	name = "natural flooring"
-	icon = 'icons/turf/flooring/grass.dmi'
-	icon_state = "grass0"
-	initial_flooring = null
-
-/turf/simulated/floor/natural/grass
+/turf/floor/grass
 	name = "grass patch"
-	icon = 'icons/turf/flooring/grass.dmi'
+	icon = 'icons/turf/floors.dmi'
 	icon_state = "grass0"
 	initial_flooring = /decl/flooring/grass
 
-/turf/simulated/floor/natural/ice
-	name = "ice"
-	icon = 'icons/turf/snow.dmi'
-	icon_state = "ice"
+/turf/floor/dirt
+	name = "dirt"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "dirt"
+	uses_winter_overlay = TRUE
+	may_become_muddy = TRUE
+	available_dirt = 3
+	var/trench_stage = 0
 
-/turf/simulated/floor/natural/snow
-	name = "snow"
-	icon = 'icons/turf/snow.dmi'
-	icon_state = "snow"
+/turf/floor/dirt/dust
+	name = "dusty dirt"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "dustydirt"
+	may_become_muddy = TRUE
+	available_dirt = 1
 
-/turf/simulated/floor/natural/lava
-	name = "lava"
-	icon = 'icons/turf/flooring/lava.dmi'
-	icon_state = "lava"
+/turf/floor/dirt/darksand
+	name = "dark dirt"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "darkydirt2"
+	may_become_muddy = TRUE
+	available_dirt = 3
 
-/turf/simulated/floor/natural/snow/New()
-	icon_state = pick("snow[rand(1,12)]","snow0")
+/turf/floor/hull
+	name = "hull"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "hullcenter0"
+	initial_flooring = /decl/flooring/hull
+
+/turf/floor/hull/New()
+	if (icon_state != "hullcenter0")
+		overrided_icon_state = icon_state
 	..()
 
-/turf/simulated/floor/natural/beach
-	name = "beach"
-	icon = 'icons/misc/beach.dmi'
+/turf/floor/tiled
+	name = "floor"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "steel"
+	initial_flooring = /decl/flooring/tiling
 
-/turf/simulated/floor/natural/beach/sand
+/turf/floor/tiled/techmaint
+	name = "floor"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "techmaint"
+	initial_flooring = /decl/flooring/tiling/new_tile/techmaint
+
+/turf/floor/tiled/monofloor
+	name = "floor"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "monofloor"
+	initial_flooring = /decl/flooring/tiling/new_tile/monofloor
+
+/turf/floor/tiled/techfloor
+	name = "floor"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "techfloor_gray"
+	initial_flooring = /decl/flooring/tiling/tech
+
+/turf/floor/tiled/monotile
+	name = "floor"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "monotile"
+	initial_flooring = /decl/flooring/tiling/new_tile/monotile
+
+/turf/floor/tiled/steel_grid
+	name = "floor"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "steel_grid"
+	initial_flooring = /decl/flooring/tiling/new_tile/steel_grid
+
+/turf/floor/tiled/steel_ridged
+	name = "floor"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "steel_ridged"
+	initial_flooring = /decl/flooring/tiling/new_tile/steel_ridged
+
+/turf/floor/tiled/old_tile
+	name = "floor"
+	icon_state = "tile_full"
+	initial_flooring = /decl/flooring/tiling/new_tile
+/turf/floor/tiled/old_tile/white
+	color = "#d9d9d9"
+/turf/floor/tiled/old_tile/blue
+	color = "#8ba7ad"
+/turf/floor/tiled/old_tile/yellow
+	color = "#8c6d46"
+/turf/floor/tiled/old_tile/gray
+	color = "#687172"
+/turf/floor/tiled/old_tile/beige
+	color = "#385e60"
+/turf/floor/tiled/old_tile/red
+	color = "#964e51"
+/turf/floor/tiled/old_tile/purple
+	color = "#906987"
+/turf/floor/tiled/old_tile/green
+	color = "#46725c"
+
+
+
+/turf/floor/tiled/old_cargo
+	name = "floor"
+	icon_state = "cargo_one_full"
+	initial_flooring = /decl/flooring/tiling/new_tile/cargo_one
+/turf/floor/tiled/old_cargo/white
+	color = "#d9d9d9"
+/turf/floor/tiled/old_cargo/blue
+	color = "#8ba7ad"
+/turf/floor/tiled/old_cargo/yellow
+	color = "#8c6d46"
+/turf/floor/tiled/old_cargo/gray
+	color = "#687172"
+/turf/floor/tiled/old_cargo/beige
+	color = "#385e60"
+/turf/floor/tiled/old_cargo/red
+	color = "#964e51"
+/turf/floor/tiled/old_cargo/purple
+	color = "#906987"
+/turf/floor/tiled/old_cargo/green
+	color = "#46725c"
+
+
+/turf/floor/tiled/kafel_full
+	name = "floor"
+	icon_state = "kafel_full"
+	initial_flooring = /decl/flooring/tiling/new_tile/kafel
+/turf/floor/tiled/kafel_full/white
+	color = "#d9d9d9"
+/turf/floor/tiled/kafel_full/blue
+	color = "#8ba7ad"
+/turf/floor/tiled/kafel_full/yellow
+	color = "#8c6d46"
+/turf/floor/tiled/kafel_full/gray
+	color = "#687172"
+/turf/floor/tiled/kafel_full/beige
+	color = "#385e60"
+/turf/floor/tiled/kafel_full/red
+	color = "#964e51"
+/turf/floor/tiled/kafel_full/purple
+	color = "#906987"
+/turf/floor/tiled/kafel_full/green
+	color = "#46725c"
+
+
+/turf/floor/tiled/techfloor/grid
+	name = "floor"
+	icon_state = "techfloor_grid"
+	initial_flooring = /decl/flooring/tiling/tech/grid
+
+/turf/floor/reinforced
+	name = "reinforced floor"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "reinforced"
+	initial_flooring = /decl/flooring/reinforced
+
+/turf/floor/reinforced/airless
+//	oxygen = FALSE
+//	nitrogen = FALSE
+
+/turf/floor/reinforced/airmix
+//	oxygen = MOLES_O2ATMOS
+//	nitrogen = MOLES_N2ATMOS
+
+/turf/floor/reinforced/nitrogen
+//	oxygen = FALSE
+//	nitrogen = ATMOSTANK_NITROGEN
+
+/turf/floor/reinforced/oxygen
+	//oxygen = ATMOSTANK_OXYGEN
+	//nitrogen = FALSE
+
+/turf/floor/reinforced/plasma
+//	oxygen = FALSE
+//	nitrogen = FALSE
+//	plasma = ATMOSTANK_PLASMA
+
+/turf/floor/reinforced/carbon_dioxide
+//	oxygen = FALSE
+//	nitrogen = FALSE
+//	carbon_dioxide = ATMOSTANK_CO2
+
+/turf/floor/reinforced/n20
+//	oxygen = FALSE
+//	nitrogen = FALSE
+
+/turf/floor/reinforced/n20/New()
+	..()
+	sleep(-1)
+	//if (!air) make_air()
+//	air.adjust_gas("sleeping_agent", ATMOSTANK_NITROUSOXIDE)
+/*
+/turf/floor/cult
+	name = "engraved floor"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "cult"
+	initial_flooring = /decl/flooring/reinforced/cult
+*/
+/turf/floor/tiled/dark
+	name = "floor"
+	icon_state = "dark"
+	initial_flooring = /decl/flooring/tiling/dark
+
+/turf/floor/tiled/steel
+	name = "floor"
+	icon_state = "steel_dirty"
+	initial_flooring = /decl/flooring/tiling/steel
+
+/turf/floor/tiled/steel/airless
+//	oxygen = FALSE
+//	nitrogen = FALSE
+
+/turf/floor/tiled/white
+	name = "floor"
+	icon_state = "white"
+	initial_flooring = /decl/flooring/tiling/white
+
+/turf/floor/tiled/freezer
+	name = "floor"
+	icon_state = "freezer"
+	initial_flooring = /decl/flooring/tiling/freezer
+
+/turf/floor/lino
+	name = "lino"
+	icon = 'icons/turf/floors.dmi'
+	icon_state = "lino"
+	initial_flooring = /decl/flooring/linoleum
+
+//ATMOS PREMADES
+/turf/floor/reinforced/airless
+	name = "reinforced floor"
+//	oxygen = FALSE
+//	nitrogen = FALSE
+	temperature = TCMB
+
+/turf/floor/airless
+	name = "plating"
+//	oxygen = FALSE
+//	nitrogen = FALSE
+	temperature = TCMB
+
+/turf/floor/tiled/airless
+	name = "floor"
+//	oxygen = FALSE
+//	nitrogen = FALSE
+	temperature = TCMB
+
+/turf/floor/bluegrid/airless
+	name = "floor"
+//	oxygen = FALSE
+//	nitrogen = FALSE
+	temperature = TCMB
+
+/turf/floor/greengrid/airless
+	name = "floor"
+//	oxygen = FALSE
+//	nitrogen = FALSE
+	temperature = TCMB
+
+/turf/floor/greengrid/nitrogen
+//	oxygen = FALSE
+
+/turf/floor/tiled/white/airless
+	name = "floor"
+//	oxygen = FALSE
+//	nitrogen = FALSE
+	temperature = TCMB
+
+// Placeholders
+/turf/floor/airless/lava
+/turf/floor/light
+/turf/floor/snow
+///turf/floor/beach/coastline
+/turf/floor/plating/snow
+/turf/floor/airless/ceiling
+/*
+/turf/floor/beach
+	name = "beach"
+	icon = 'icons/turf/floors.dmi'
+
+/turf/floor/beach/sand
 	name = "sand"
 	icon_state = "sand"
 
-/turf/simulated/floor/natural/beach/sand/desert
+/turf/floor/beach/sand/desert
 	icon_state = "desert"
-	has_resources = 1
 
-/turf/simulated/floor/natural/beach/sand/desert/New()
-	icon_state = "desert[rand(0,5)]"
-	..()
-
-/turf/simulated/floor/natural/beach/coastline
+/turf/floor/beach/coastline
 	name = "coastline"
-	icon = 'icons/misc/beach2.dmi'
+	icon = 'icons/turf/floors.dmi'
 	icon_state = "sandwater"
 
-/turf/simulated/floor/natural/beach/water
+/turf/floor/beach/water
 	name = "water"
 	icon_state = "water"
 
-/turf/simulated/floor/natural/beach/water/update_dirt()
+/turf/floor/beach/water/update_dirt()
 	return	// Water doesn't become dirty
 
-/turf/simulated/floor/natural/beach/water/ocean
+/turf/floor/beach/water/ocean
 	icon_state = "seadeep"
 
-/turf/simulated/floor/natural/beach/water/New()
+/turf/floor/beach/water/New()
 	..()
 	overlays += image("icon"='icons/misc/beach.dmi',"icon_state"="water5","layer"=MOB_LAYER+0.1)
 
-
-//MISCELLANEOUS FLOORING
-
-/turf/simulated/floor/misc
-	name = "miscellaneous flooring"
-	icon = 'icons/turf/flooring/plating.dmi'
-	icon_state = "plating"
-	initial_flooring = null
-
-/turf/simulated/floor/misc/cult
-	name = "engraved floor"
-	icon = 'icons/turf/flooring/cult.dmi'
-	icon_state = "cult"
-	initial_flooring = /decl/flooring/reinforced/cult
-
-/turf/simulated/floor/misc/cult/cultify()
-	return
+*/

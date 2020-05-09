@@ -2,11 +2,11 @@
 	set category = "Admin"
 	set name = "Permissions Panel"
 	set desc = "Edit admin permissions"
-	if(!check_rights(R_PERMISSIONS))	return
+	if (!check_rights(R_PERMISSIONS))	return
 	usr.client.holder.edit_admin_permissions()
 
 /datum/admins/proc/edit_admin_permissions()
-	if(!check_rights(R_PERMISSIONS))	return
+	if (!check_rights(R_PERMISSIONS))	return
 
 	var/output = {"<!DOCTYPE html>
 <html>
@@ -23,12 +23,12 @@
 </tr>
 "}
 
-	for(var/adm_ckey in admin_datums)
+	for (var/adm_ckey in admin_datums)
 		var/datum/admins/D = admin_datums[adm_ckey]
-		if(!D)	continue
+		if (!D)	continue
 		var/rank = D.rank ? D.rank : "*none*"
 		var/rights = rights2text(D.rights," ")
-		if(!rights)	rights = "*none*"
+		if (!rights)	rights = "*none*"
 
 		output += "<tr>"
 		output += "<td style='text-align:right;'>[adm_ckey] <a class='small' href='?src=\ref[src];editrights=remove;ckey=[adm_ckey]'>\[-\]</a></td>"
@@ -44,106 +44,110 @@
 
 	usr << browse(output,"window=editrights;size=600x500")
 
-/datum/admins/proc/log_admin_rank_modification(adm_ckey, new_rank)
-	if(config.admin_legacy_system)	return
+// see admin/topic.dm
+/datum/admins/proc/log_admin_rank_modification(var/adm_ckey, var/new_rank)
 
-	if(!usr.client)
+	if (!usr.client)
 		return
 
-	if(!usr.client.holder || !(usr.client.holder.rights & R_PERMISSIONS))
-		to_chat(usr, "<span class='warning'>You do not have permission to do this!</span>")
+	if (!usr.client.holder || !(usr.client.holder.rights & R_PERMISSIONS))
+		usr << "<span class = 'red'>You do not have permission to do this!</span>"
 		return
 
 	establish_db_connection()
 
-	if(!dbcon.IsConnected())
-		to_chat(usr, "<span class='warning'>Failed to establish database connection</span>")
+	if (!database)
+		usr << "<span class = 'red'>Failed to establish database connection.</span>"
 		return
 
-	if(!adm_ckey || !new_rank)
+	if (!adm_ckey || !new_rank)
 		return
 
 	adm_ckey = ckey(adm_ckey)
 
-	if(!adm_ckey)
+	if (!adm_ckey)
 		return
 
-	if(!istext(adm_ckey) || !istext(new_rank))
+	if (!istext(adm_ckey) || !istext(new_rank))
 		return
 
-	var/DBQuery/select_query = dbcon.NewQuery("SELECT id FROM erro_admin WHERE ckey = '[adm_ckey]'")
-	select_query.Execute()
+	if (new_rank == "Removed")
+		database.execute("DELETE FROM admin WHERE ckey = '[adm_ckey]';")
+		return
 
-	var/new_admin = 1
-	var/admin_id
-	while(select_query.NextRow())
-		new_admin = 0
-		admin_id = text2num(select_query.item[1])
+	var/list/rowdata = database.execute("SELECT id FROM admin WHERE ckey = '[adm_ckey]';")
 
-	if(new_admin)
-		var/DBQuery/insert_query = dbcon.NewQuery("INSERT INTO `erro_admin` (`id`, `ckey`, `rank`, `flags`) VALUES (null, '[adm_ckey]', '[new_rank]', 0)")
-		insert_query.Execute()
-		var/DBQuery/log_query = dbcon.NewQuery("INSERT INTO `test`.`erro_admin_log` (`id` ,`datetime` ,`adminckey` ,`adminip` ,`log` ) VALUES (NULL , NOW( ) , '[usr.ckey]', '[usr.client.address]', 'Added new admin [adm_ckey] to rank [new_rank]');")
-		log_query.Execute()
-		to_chat(usr, "<span class='notice'>New admin added.</span>")
+	var/new_admin = TRUE
+	var/admin_id = 0
+
+	if (islist(rowdata) && !isemptylist(rowdata))
+		new_admin = FALSE
+		admin_id = text2num(rowdata["id"])
+
+	if (new_admin)
+		database.execute("INSERT INTO admin (id, ckey, rank, flags) VALUES ('[database.newUID()]', '[adm_ckey]', '[new_rank]', '[num2text(admin_ranks[ckeyEx(new_rank)])]');", FALSE)
+		message_admins("[key_name_admin(usr)] made '[adm_ckey]' an admin with the rank [new_rank].")
+		log_admin("[key_name(usr)] made '[adm_ckey]' an admin with the rank [new_rank].")
+		usr << "<span class = 'good'>New admin successfully added.</span>"
 	else
-		if(!isnull(admin_id) && isnum(admin_id))
-			var/DBQuery/insert_query = dbcon.NewQuery("UPDATE `erro_admin` SET `rank` = '[new_rank]' WHERE id = [admin_id]")
-			insert_query.Execute()
-			var/DBQuery/log_query = dbcon.NewQuery("INSERT INTO `test`.`erro_admin_log` (`id` ,`datetime` ,`adminckey` ,`adminip` ,`log` ) VALUES (NULL , NOW( ) , '[usr.ckey]', '[usr.client.address]', 'Edited the rank of [adm_ckey] to [new_rank]');")
-			log_query.Execute()
-			to_chat(usr, "<span class='notice'>Admin rank changed.</span>")
+		if (admin_id == 0 || !isnum(admin_id))
+			admin_id = database.newUID()
+		else
+			admin_id = num2text(admin_id)
+		database.execute("UPDATE admin SET rank = '[new_rank]', flags = '[num2text(admin_ranks[ckeyEx(new_rank)])]' WHERE id = '[admin_id]'", FALSE)
+		message_admins("[key_name_admin(usr)] changed '[adm_ckey]''s admin rank to [new_rank].")
+		log_admin("[key_name(usr)] changed '[adm_ckey]''s  admin rank to [new_rank].")
+		usr << "<span class = 'good'>Admin rank successfully changed.</span>"
 
-/datum/admins/proc/log_admin_permission_modification(adm_ckey, new_permission)
-	if(config.admin_legacy_system)	return
+// see admin/topic.dm
+/datum/admins/proc/log_admin_permission_modification(var/adm_ckey, var/new_permission, var/nominal)
 
-	if(!usr.client)
+	if (!usr.client)
 		return
 
-	if(!usr.client.holder || !(usr.client.holder.rights & R_PERMISSIONS))
-		to_chat(usr, "<span class='warning'>You do not have permission to do this!</span>")
+	if (!usr.client.holder || !(usr.client.holder.rights & R_PERMISSIONS))
+		usr << "<span class = 'red'>You do not have permission to do this!</span>"
 		return
 
 	establish_db_connection()
-	if(!dbcon.IsConnected())
-		to_chat(usr, "<span class='warning'>Failed to establish database connection</span>")
+
+	if (!database)
+		usr << "<span class = 'red'>Failed to establish database connection.</span>"
 		return
 
-	if(!adm_ckey || !new_permission)
+	if (!adm_ckey || !new_permission)
 		return
 
 	adm_ckey = ckey(adm_ckey)
 
-	if(!adm_ckey)
+	if (!adm_ckey)
 		return
 
-	if(istext(new_permission))
+	if (istext(new_permission))
 		new_permission = text2num(new_permission)
 
-	if(!istext(adm_ckey) || !isnum(new_permission))
+	if (!istext(adm_ckey) || !isnum(new_permission))
 		return
 
-	var/DBQuery/select_query = dbcon.NewQuery("SELECT id, flags FROM erro_admin WHERE ckey = '[adm_ckey]'")
-	select_query.Execute()
+	var/list/rowdata = database.execute("SELECT id, flags FROM admin WHERE ckey = '[adm_ckey]';")
 
 	var/admin_id
 	var/admin_rights
-	while(select_query.NextRow())
-		admin_id = text2num(select_query.item[1])
-		admin_rights = text2num(select_query.item[2])
 
-	if(!admin_id)
+	if (islist(rowdata) && !isemptylist(rowdata))
+		admin_id = text2num(rowdata["id"])
+		admin_rights = text2num(rowdata["flags"])
+
+	if (!admin_id)
 		return
 
-	if(admin_rights & new_permission) //This admin already has this permission, so we are removing it.
-		var/DBQuery/insert_query = dbcon.NewQuery("UPDATE `erro_admin` SET flags = [admin_rights & ~new_permission] WHERE id = [admin_id]")
-		insert_query.Execute()
-		var/DBQuery/log_query = dbcon.NewQuery("INSERT INTO `test`.`erro_admin_log` (`id` ,`datetime` ,`adminckey` ,`adminip` ,`log` ) VALUES (NULL , NOW( ) , '[usr.ckey]', '[usr.client.address]', 'Removed permission [rights2text(new_permission)] (flag = [new_permission]) to admin [adm_ckey]');")
-		log_query.Execute()
-		to_chat(usr, "<span class='notice'>Permission removed.</span>")
+	if (admin_rights & new_permission) //This admin already has this permission, so we are removing it.
+		database.execute("UPDATE admin SET flags = '[admin_rights & ~new_permission]' WHERE id = '[admin_id]'")
+		message_admins("[key_name_admin(usr)] removed the [nominal] permission of [key_name_admin(adm_ckey)]")
+		log_admin("[key_name(usr)] removed the [nominal] permission of [key_name(adm_ckey)]")
+		usr << "<span class = 'notice'>Permission removed.</span>"
 	else //This admin doesn't have this permission, so we are adding it.
-		var/DBQuery/insert_query = dbcon.NewQuery("UPDATE `erro_admin` SET flags = '[admin_rights | new_permission]' WHERE id = [admin_id]")
-		insert_query.Execute()
-		var/DBQuery/log_query = dbcon.NewQuery("INSERT INTO `test`.`erro_admin_log` (`id` ,`datetime` ,`adminckey` ,`adminip` ,`log` ) VALUES (NULL , NOW( ) , '[usr.ckey]', '[usr.client.address]', 'Added permission [rights2text(new_permission)] (flag = [new_permission]) to admin [adm_ckey]')")
-		log_query.Execute()
-		to_chat(usr, "<span class='notice'>Permission added.</span>")
+		database.execute("UPDATE admin SET flags = '[admin_rights | new_permission]' WHERE id = '[admin_id]'")
+		message_admins("[key_name_admin(usr)] added the [nominal] permission of [key_name_admin(adm_ckey)]")
+		log_admin("[key_name(usr)] added the [nominal] permission of [key_name(adm_ckey)]")
+		usr << "<span class = 'notice'>Permission added.</span>"

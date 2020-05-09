@@ -8,7 +8,7 @@
 	mutation=mNobreath
 
 	New()
-		block=GLOB.NOBREATHBLOCK
+		block=NOBREATHBLOCK
 
 /datum/dna/gene/basic/remoteview
 	name="Remote Viewing"
@@ -16,7 +16,7 @@
 	mutation=mRemote
 
 	New()
-		block=GLOB.REMOTEVIEWBLOCK
+		block=REMOTEVIEWBLOCK
 
 	activate(var/mob/M, var/connected, var/flags)
 		..(M,connected,flags)
@@ -28,7 +28,7 @@
 	mutation=mRegen
 
 	New()
-		block=GLOB.REGENERATEBLOCK
+		block=REGENERATEBLOCK
 
 /datum/dna/gene/basic/increaserun
 	name="Super Speed"
@@ -36,7 +36,7 @@
 	mutation=mRun
 
 	New()
-		block=GLOB.INCREASERUNBLOCK
+		block=INCREASERUNBLOCK
 
 /datum/dna/gene/basic/remotetalk
 	name="Telepathy"
@@ -44,7 +44,7 @@
 	mutation=mRemotetalk
 
 	New()
-		block=GLOB.REMOTETALKBLOCK
+		block=REMOTETALKBLOCK
 
 	activate(var/mob/M, var/connected, var/flags)
 		..(M,connected,flags)
@@ -56,7 +56,7 @@
 	mutation=mMorph
 
 	New()
-		block=GLOB.MORPHBLOCK
+		block=MORPHBLOCK
 
 	activate(var/mob/M)
 		..(M)
@@ -69,17 +69,17 @@
 	mutation=mHeatres
 
 	New()
-		block=GLOB.COLDBLOCK
+		block=COLDBLOCK
 
 	can_activate(var/mob/M,var/flags)
-		if(flags & MUTCHK_FORCED)
+		if (flags & MUTCHK_FORCED)
 			return !(/datum/dna/gene/basic/cold_resist in M.active_genes)
 		// Probability check
 		var/_prob = 15
-		if(MUTATION_COLD_RESISTANCE in M.mutations)
+		if (COLD_RESISTANCE in M.mutations)
 			_prob=5
-		if(probinj(_prob,(flags&MUTCHK_FORCED)))
-			return 1
+		if (probinj(_prob,(flags&MUTCHK_FORCED)))
+			return TRUE
 
 	OnDrawUnderlays(var/mob/M,var/g,var/fat)
 		return "cold[fat]_s"
@@ -88,21 +88,21 @@
 /datum/dna/gene/basic/cold_resist
 	name="Cold Resistance"
 	activation_messages=list("Your body is filled with warmth.")
-	mutation=MUTATION_COLD_RESISTANCE
+	mutation=COLD_RESISTANCE
 
 	New()
-		block=GLOB.FIREBLOCK
+		block=FIREBLOCK
 
 	can_activate(var/mob/M,var/flags)
-		if(flags & MUTCHK_FORCED)
-			return 1
+		if (flags & MUTCHK_FORCED)
+			return TRUE
 		//	return !(/datum/dna/gene/basic/heat_resist in M.active_genes)
 		// Probability check
 		var/_prob=30
-		//if(mHeatres in M.mutations)
+		//if (mHeatres in M.mutations)
 		//	_prob=5
-		if(probinj(_prob,(flags&MUTCHK_FORCED)))
-			return 1
+		if (probinj(_prob,(flags&MUTCHK_FORCED)))
+			return TRUE
 
 	OnDrawUnderlays(var/mob/M,var/g,var/fat)
 		return "fire[fat]_s"
@@ -113,7 +113,7 @@
 	mutation=mFingerprints
 
 	New()
-		block=GLOB.NOPRINTSBLOCK
+		block=NOPRINTSBLOCK
 
 /datum/dna/gene/basic/noshock
 	name="Shock Immunity"
@@ -121,7 +121,7 @@
 	mutation=mShock
 
 	New()
-		block=GLOB.SHOCKIMMUNITYBLOCK
+		block=SHOCKIMMUNITYBLOCK
 
 /datum/dna/gene/basic/midget
 	name="Midget"
@@ -129,17 +129,17 @@
 	mutation=mSmallsize
 
 	New()
-		block=GLOB.SMALLSIZEBLOCK
+		block=SMALLSIZEBLOCK
 
 	can_activate(var/mob/M,var/flags)
 		// Can't be big and small.
-		if(MUTATION_HULK in M.mutations)
-			return 0
+		if (HULK in M.mutations)
+			return FALSE
 		return ..(M,flags)
 
 	activate(var/mob/M, var/connected, var/flags)
 		..(M,connected,flags)
-		M.pass_flags |= 1
+		M.pass_flags |= TRUE
 
 	deactivate(var/mob/M, var/connected, var/flags)
 		..(M,connected,flags)
@@ -148,48 +148,48 @@
 /datum/dna/gene/basic/hulk
 	name="Hulk"
 	activation_messages=list("Your muscles hurt.")
-	mutation=MUTATION_HULK
+	mutation=HULK
 
 	New()
-		block=GLOB.HULKBLOCK
+		block=HULKBLOCK
 
 	can_activate(var/mob/M,var/flags)
 		// Can't be big and small.
-		if(mSmallsize in M.mutations)
-			return 0
+		if (mSmallsize in M.mutations)
+			return FALSE
 		return ..(M,flags)
 
 	OnDrawUnderlays(var/mob/M,var/g,var/fat)
-		if(fat)
+		if (fat)
 			return "hulk_[fat]_s"
 		else
 			return "hulk_[g]_s"
-		return 0
+		return FALSE
 
 	OnMobLife(var/mob/living/carbon/human/M)
-		if(!istype(M)) return
-		if(M.health <= 25)
-			M.mutations.Remove(MUTATION_HULK)
+		if (!istype(M)) return
+		if (M.health <= 25)
+			M.mutations.Remove(HULK)
 			M.update_mutations()		//update our mutation overlays
-			to_chat(M, "<span class='warning'>You suddenly feel very weak.</span>")
+			M << "<span class='warning'>You suddenly feel very weak.</span>"
 			M.Weaken(3)
 			M.emote("collapse")
 
 /datum/dna/gene/basic/xray
 	name="X-Ray Vision"
 	activation_messages=list("The walls suddenly disappear.")
-	mutation=MUTATION_XRAY
+	mutation=XRAY
 
 	New()
-		block=GLOB.XRAYBLOCK
+		block=XRAYBLOCK
 
 /datum/dna/gene/basic/tk
 	name="Telekenesis"
 	activation_messages=list("You feel smarter.")
-	mutation=MUTATION_TK
+	mutation=TK
 	activation_prob=15
 
 	New()
-		block=GLOB.TELEBLOCK
+		block=TELEBLOCK
 	OnDrawUnderlays(var/mob/M,var/g,var/fat)
 		return "telekinesishead[fat]_s"

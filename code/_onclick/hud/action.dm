@@ -1,78 +1,70 @@
-#define AB_ITEM 1
+#define AB_ITEM TRUE
 #define AB_SPELL 2
 #define AB_INNATE 3
 #define AB_GENERIC 4
 
-#define AB_CHECK_RESTRAINED 1
+#define AB_CHECK_RESTRAINED TRUE
 #define AB_CHECK_STUNNED 2
 #define AB_CHECK_LYING 4
 #define AB_CHECK_ALIVE 8
 #define AB_CHECK_INSIDE 16
 
-
+// TODO: COMPLETELY UNFUCK THE HUD - JULY 14, 2017 aka the 'mob/living/living.dm' spaghetti monster
 /datum/action
 	var/name = "Generic Action"
 	var/action_type = AB_ITEM
 	var/procname = null
 	var/atom/movable/target = null
-	var/check_flags = 0
-	var/processing = 0
-	var/active = 0
+	var/check_flags = FALSE
+	var/processing = FALSE
+	var/active = FALSE
 	var/obj/screen/movable/action_button/button = null
 	var/button_icon = 'icons/mob/actions.dmi'
 	var/button_icon_state = "default"
 	var/background_icon_state = "bg_default"
 	var/mob/living/owner
 
-/datum/action/New(Target)
+/datum/action/New(var/Target)
 	target = Target
+	button = new
+	button.name = name
 
 /datum/action/Destroy()
-	if(owner)
+	if (owner)
 		Remove(owner)
+	if (target)
+		target = null
+	if (button)
+		qdel(button)
+	else
+		button = null
+	return ..()
 
 /datum/action/proc/Grant(mob/living/T)
-	if(owner)
-		if(owner == T)
+	if (owner)
+		if (owner == T)
 			return
 		Remove(owner)
 	owner = T
-	owner.actions.Add(src)
-	owner.update_action_buttons()
-	return
+	button.owner = src
+	T.actions |= src // scope HUDs can somehow be granted twice
+	if (T.client)
+		T.client.screen |= button // scope HUDs can somehow be granted twice
+	T.update_action_buttons()
 
 /datum/action/proc/Remove(mob/living/T)
-	if(button)
-		if(T.client)
+	if (T)
+		if (T.client)
 			T.client.screen -= button
-		qdel(button)
-		button = null
-	T.actions.Remove(src)
-	T.update_action_buttons()
-	owner = null
-	return
+		button.moved = FALSE //so the button appears in its normal position when given to another owner.
+		T.actions -= src
+		T.update_action_buttons()
+		owner = null
 
 /datum/action/proc/Trigger()
-	if(!Checks())
-		return
-	switch(action_type)
-		if(AB_ITEM)
-			if(target)
-				var/obj/item/item = target
-				item.ui_action_click()
-		//if(AB_SPELL)
-		//	if(target)
-		//		var/obj/effect/proc_holder/spell = target
-		//		spell.Click()
-		if(AB_INNATE)
-			if(!active)
-				Activate()
-			else
-				Deactivate()
-		if(AB_GENERIC)
-			if(target && procname)
-				call(target,procname)(usr)
-	return
+	if (!IsAvailable())
+		return FALSE
+	return TRUE
 
 /datum/action/proc/Activate()
 	return
@@ -80,34 +72,31 @@
 /datum/action/proc/Deactivate()
 	return
 
-/datum/action/proc/ProcessAction()
+/datum/action/proc/Process()
 	return
 
-/datum/action/proc/CheckRemoval(mob/living/user) // 1 if action is no longer valid for this mob and should be removed
-	return 0
+/datum/action/proc/CheckRemoval(mob/living/user) // TRUE if action is no longer valid for this mob and should be removed
+	return FALSE
 
 /datum/action/proc/IsAvailable()
-	return Checks()
-
-/datum/action/proc/Checks()// returns 1 if all checks pass
-	if(!owner)
-		return 0
-	if(check_flags & AB_CHECK_RESTRAINED)
-		if(owner.restrained())
-			return 0
-	if(check_flags & AB_CHECK_STUNNED)
-		if(owner.stunned)
-			return 0
-	if(check_flags & AB_CHECK_LYING)
-		if(owner.lying)
-			return 0
-	if(check_flags & AB_CHECK_ALIVE)
-		if(owner.stat)
-			return 0
-	if(check_flags & AB_CHECK_INSIDE)
-		if(!(target in owner))
-			return 0
-	return 1
+	if (!owner)
+		return FALSE
+	if (check_flags & AB_CHECK_RESTRAINED)
+		if (owner.restrained())
+			return FALSE
+	if (check_flags & AB_CHECK_STUNNED)
+		if (owner.stunned)
+			return FALSE
+	if (check_flags & AB_CHECK_LYING)
+		if (owner.lying)
+			return FALSE
+	if (check_flags & AB_CHECK_ALIVE)
+		if (owner.stat)
+			return FALSE
+	if (check_flags & AB_CHECK_INSIDE)
+		if (!(target in owner))
+			return FALSE
+	return TRUE
 
 /datum/action/proc/UpdateName()
 	return name
@@ -118,32 +107,32 @@
 
 /obj/screen/movable/action_button/Click(location,control,params)
 	var/list/modifiers = params2list(params)
-	if(modifiers["shift"])
-		moved = 0
-		return 1
-	if(usr.next_move >= world.time) // Is this needed ?
+	if (modifiers["shift"])
+		moved = FALSE
+		return TRUE
+	if (usr.next_move >= world.time) // Is this needed ?
 		return
 	owner.Trigger()
-	return 1
+	return TRUE
 
 /obj/screen/movable/action_button/proc/UpdateIcon()
-	if(!owner)
+	if (!owner)
 		return
 	icon = owner.button_icon
 	icon_state = owner.background_icon_state
 
 	overlays.Cut()
 	var/image/img
-	if(owner.action_type == AB_ITEM && owner.target)
+	if (owner.action_type == AB_ITEM && owner.target)
 		var/obj/item/I = owner.target
 		img = image(I.icon, src , I.icon_state)
-	else if(owner.button_icon && owner.button_icon_state)
+	else if (owner.button_icon && owner.button_icon_state)
 		img = image(owner.button_icon,src,owner.button_icon_state)
-	img.pixel_x = 0
-	img.pixel_y = 0
+	img.pixel_x = pixel_x
+	img.pixel_y = pixel_y
 	overlays += img
 
-	if(!owner.IsAvailable())
+	if (!owner.IsAvailable())
 		color = rgb(128,0,0,128)
 	else
 		color = rgb(255,255,255,255)
@@ -153,13 +142,13 @@
 	name = "Hide Buttons"
 	icon = 'icons/mob/actions.dmi'
 	icon_state = "bg_default"
-	var/hidden = 0
+	var/hidden = FALSE
 
 /obj/screen/movable/action_button/hide_toggle/Click()
-	usr.hud_used.action_buttons_hidden = !usr.hud_used.action_buttons_hidden
+	//usr.hud_used.action_buttons_hidden = !usr.hud_used.action_buttons_hidden
 
-	hidden = usr.hud_used.action_buttons_hidden
-	if(hidden)
+	//hidden = usr.hud_used.action_buttons_hidden
+	if (hidden)
 		name = "Show Buttons"
 	else
 		name = "Hide Buttons"
@@ -167,8 +156,8 @@
 	usr.update_action_buttons()
 
 
-/obj/screen/movable/action_button/hide_toggle/proc/InitialiseIcon(mob/living/user)
-	if(isalien(user))
+/obj/screen/movable/action_button/hide_toggle/proc/InitialiseIcon(var/mob/living/user)
+	if (isalien(user))
 		icon_state = "bg_alien"
 	else
 		icon_state = "bg_default"
@@ -189,7 +178,7 @@
 #define AB_NORTH_OFFSET 26
 #define AB_MAX_COLUMNS 10
 
-/datum/hud/proc/ButtonNumberToScreenCoords(number) // TODO : Make this zero-indexed for readabilty
+/datum/hud/proc/ButtonNumberToScreenCoords(var/number) // TODO : Make this zero-indexed for readabilty
 	var/row = round((number-1)/AB_MAX_COLUMNS)
 	var/col = ((number - 1)%(AB_MAX_COLUMNS)) + 1
 	var/coord_col = "+[col-1]"
@@ -198,7 +187,7 @@
 	var/coord_row_offset = AB_NORTH_OFFSET
 	return "WEST[coord_col]:[coord_col_offset],NORTH[coord_row]:[coord_row_offset]"
 
-/datum/hud/proc/SetButtonCoords(obj/screen/button,number)
+/datum/hud/proc/SetButtonCoords(var/obj/screen/button,var/number)
 	var/row = round((number-1)/AB_MAX_COLUMNS)
 	var/col = ((number - 1)%(AB_MAX_COLUMNS)) + 1
 	var/x_offset = 32*(col-1) + AB_WEST_OFFSET + 2*col

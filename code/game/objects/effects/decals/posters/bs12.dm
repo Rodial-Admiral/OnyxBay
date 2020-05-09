@@ -91,7 +91,7 @@
 
 /datum/poster/bay_19
 	icon_state="bsposter19"
-	name = "Respect an Unathi"
+	name = "Respect a Unathi"
 	desc = "This poster depicts a well dressed looking Unathi receiving a prestigious award. It appears to espouse greater co-operation and harmony between the two races."
 
 /datum/poster/bay_20
@@ -117,7 +117,7 @@
 /datum/poster/bay_24
 	icon_state="bsposter24"
 	name = "Responsible medbay habits, No #259"
-	desc = "A poster with a nervous looking geneticist on it states; \"Friends Tell Friends They're Clones. It can cause severe and irreparable emotional trauma if a person is not properly informed of their recent demise. Always follow your contractual obligation and inform them of their recent rejuvenation.\""
+	desc = "A poster with a nervous looking geneticist on it states; \"Friends Don't Tell Friends They're Clones. It can cause severe and irreparable emotional trauma. Always do the right thing and never tell them that they were dead.\""
 
 /datum/poster/bay_25
 	icon_state="bsposter25"
@@ -142,7 +142,7 @@
 /datum/poster/bay_29
 	icon_state="bsposter29"
 	name = "Winter Is Coming"
-	desc = "On the poster is a frighteningly large wolf, he warns: \"Only YOU can keep humanity from freezing during planetary occultation!\""
+	desc = "On the poster is a frighteningly large wolf, he warns: \"Only YOU can keep the station from freezing during planetary occultation!\""
 
 /datum/poster/bay_30
 	icon_state="bsposter30"
@@ -288,13 +288,3 @@
 	icon_state="bsposter58"
 	name = "space carp information poster"
 	desc = "This poster showcases an old spacer saying on the dangers of migrant space carp."
-
-/datum/poster/bay_59
-	icon_state="bsposter59"
-	name = "poster - Miss Science 2558"
-	desc = "A large piece of space-resistant printed paper. This pin-up poster depicts a woman wearing a NanoTrasen labcoat, a bikini, and a sheepish grin. She's shyly posing atop some highly specialized research equipment."
-
-/datum/poster/bay_60
-	icon_state="bsposter60"
-	name = "RblRware Ltd. logo"
-	desc = "This particular one is of a logo of one of the most famous arcade game studios that made Syndietoads & Zhirozavr."

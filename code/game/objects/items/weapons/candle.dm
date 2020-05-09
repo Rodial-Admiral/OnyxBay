@@ -1,61 +1,73 @@
 /obj/item/weapon/flame/candle
 	name = "red candle"
-	desc = "A small pillar candle. Its specially-formulated fuel-oxidizer wax mixture allows continued combustion in airless environments."
+	desc = "a small pillar candle. Its specially-formulated fuel-oxidizer wax mixture allows continued combustion in airless environments."
 	icon = 'icons/obj/candle.dmi'
 	icon_state = "candle1"
 	item_state = "candle1"
-	w_class = ITEM_SIZE_TINY
-	mod_weight = 0.25
-	mod_reach = 0.25
-	mod_handy = 0.25
-	light_color = "#e09d37"
-	var/wax
+	w_class = TRUE
+	light_color = "#E09D37"
+	var/wax = 2000
 
 /obj/item/weapon/flame/candle/New()
-	wax = rand(27 MINUTES, 33 MINUTES) / SSobj.wait // Enough for 27-33 minutes. 30 minutes on average, adjusted for subsystem tickrate.
+	wax = rand(800, 1000) // Enough for 27-33 minutes. 30 minutes on average.
 	..()
 
 /obj/item/weapon/flame/candle/update_icon()
 	var/i
-	if(wax > 1500)
-		i = 1
-	else if(wax > 800)
+	if (wax > 1500)
+		i = TRUE
+	else if (wax > 800)
 		i = 2
 	else i = 3
 	icon_state = "candle[i][lit ? "_lit" : ""]"
 
-/obj/item/weapon/flame/candle/attackby(obj/item/weapon/W, mob/user)
+
+/obj/item/weapon/flame/candle/attackby(obj/item/weapon/W as obj, mob/user as mob)
 	..()
-	if(isflamesource(W) || is_hot(W))
-		light()
+	if (istype(W, /obj/item/weapon/weldingtool))
+		var/obj/item/weapon/weldingtool/WT = W
+		if (WT.isOn()) //Badasses dont get blinded by lighting their candle with a welding tool
+			light("<span class='notice'>\The [user] casually lights the [name] with [W].</span>")
+	else if (istype(W, /obj/item/weapon/flame/lighter))
+		var/obj/item/weapon/flame/lighter/L = W
+		if (L.lit)
+			light()
+	else if (istype(W, /obj/item/weapon/flame/match))
+		var/obj/item/weapon/flame/match/M = W
+		if (M.lit)
+			light()
+	else if (istype(W, /obj/item/weapon/flame/candle))
+		var/obj/item/weapon/flame/candle/C = W
+		if (C.lit)
+			light()
 
-/obj/item/weapon/flame/candle/resolve_attackby(atom/A, mob/user)
-	. = ..()
-	if(istype(A, /obj/item/weapon/flame/candle/) && is_hot(src))
-		var/obj/item/weapon/flame/candle/other_candle = A
-		other_candle.light()
 
-/obj/item/weapon/flame/candle/proc/light(mob/user)
-	if(!src.lit)
-		src.lit = TRUE
-		src.visible_message("<span class='notice'>\The [user] lights the [name].</span>")
+/obj/item/weapon/flame/candle/proc/light(var/flavor_text = "<span class='notice'>\The [usr] lights the [name].</span>")
+	if (!lit)
+		lit = TRUE
+		//damtype = "fire"
+		for (var/mob/O in viewers(usr, null))
+			O.show_message(flavor_text, TRUE)
 		set_light(CANDLE_LUM)
-		START_PROCESSING(SSobj, src)
+		processing_objects.Add(src)
 
-/obj/item/weapon/flame/candle/Process()
-	if(!lit)
+
+/obj/item/weapon/flame/candle/process()
+	if (!lit)
 		return
 	wax--
-	if(!wax)
-		new /obj/item/trash/candle(src.loc)
+	if (!wax)
+		new/obj/item/trash/candle(loc)
+		if (istype(loc, /mob))
+			dropped()
 		qdel(src)
 	update_icon()
-	if(istype(loc, /turf)) //start a fire if possible
+	if (istype(loc, /turf)) //start a fire if possible
 		var/turf/T = loc
 		T.hotspot_expose(700, 5)
 
 /obj/item/weapon/flame/candle/attack_self(mob/user as mob)
-	if(lit)
-		lit = 0
+	if (lit)
+		lit = FALSE
 		update_icon()
 		set_light(0)

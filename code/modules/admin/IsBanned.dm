@@ -1,97 +1,141 @@
+#ifndef OVERRIDE_BAN_SYSTEM
 //Blocks an attempt to connect before even creating our client datum thing.
-/world/IsBanned(key, address, computer_id, type)
-	var/static/key_cache = list()
-	if(type == "world")
-		return ..()
+world/IsBanned(key,address,computer_id)
 
-	if(key_cache[key] >= REALTIMEOFDAY)
-		return list("reason"="concurrent connection attempts", "desc"="You are attempting to connect too fast. Try again.")
-	key_cache[key] = REALTIMEOFDAY + 10 //This proc shouldn't be runtiming. But if it does, then the expiry time will cover it to ensure genuine connection attempts don't get trapped in limbo.
-
-	var/ckeytext = ckey(key)
-
-	if(admin_datums[ckeytext])
-		key_cache[key] = 0
+	if(ckey(key) in admin_datums)
 		return ..()
 
 	//Guest Checking
 	if(!config.guests_allowed && IsGuestKey(key))
 		log_access("Failed Login: [key] - Guests not allowed")
-		message_admins("<span class='notice'>Failed Login: [key] - Guests not allowed</span>")
-		key_cache[key] = 0
+		message_admins("\blue Failed Login: [key] - Guests not allowed")
 		return list("reason"="guest", "desc"="\nReason: Guests not allowed. Please sign in with a byond account.")
 
-	var/client/C = GLOB.ckey_directory[ckeytext]
-	//If this isn't here, then topic call spam will result in all clients getting kicked with a connecting too fast error.
-	if (C && ckeytext == C.ckey && address == C.address && computer_id == C.computer_id)
-		key_cache[key] = 0
-		return
+	//check if the IP address is a known TOR node
+	if(config && config.ToRban && ToRban_isbanned(address))
+		log_access("Failed Login: [src] - Banned: ToR")
+		message_admins("\blue Failed Login: [src] - Banned: ToR")
+		//ban their computer_id and ckey for posterity
+		AddBan(ckey(key), computer_id, "Use of ToR", "Automated Ban", 0, 0)
+		return list("reason"="Using ToR", "desc"="\nReason: The network you are using to connect has been banned.\nIf you believe this is a mistake, please request help at [config.banappeals]")
 
+/*
 	if(config.ban_legacy_system)
 
 		//Ban Checking
-		. = CheckBan(ckeytext, computer_id, address)
+		. = CheckBan( ckey(key), computer_id, address )
 		if(.)
 			log_access("Failed Login: [key] [computer_id] [address] - Banned [.["reason"]]")
-			message_admins("<span class='notice'>Failed Login: [key] id:[computer_id] ip:[address] - Banned [.["reason"]]</span>")
-			key_cache[key] = 0
+			message_admins("\blue Failed Login: [key] id:[computer_id] ip:[address] - Banned [.["reason"]]")
 			return .
 
-		key_cache[key] = 0
 		return ..()	//default pager ban stuff
 
-	else
+	else*/
 
-		if(!establish_db_connection())
-			error("Ban database connection failure. Key [ckeytext] not checked")
-			log_misc("Ban database connection failure. Key [ckeytext] not checked")
-			key_cache[key] = 0
-			return
+	var/ckeytext = ckey(key)
 
-		var/failedcid = 1
-		var/failedip = 1
+	if(!establish_db_connection())
+		error("Ban database connection failure. Key [ckeytext] not checked")
+		log_misc("Ban database connection failure. Key [ckeytext] not checked")
+		return
 
-		var/ipquery = ""
-		var/cidquery = ""
-		if(address)
-			failedip = 0
-			ipquery = " OR ip = '[address]' "
+	var/failedcid = 1
+	var/failedip = 1
 
-		if(computer_id)
-			failedcid = 0
-			cidquery = " OR computerid = '[computer_id]' "
+	if(address)
+		failedip = 0
 
-		var/DBQuery/query
-		if (isnull(config.server_id))
-			query = dbcon.NewQuery("SELECT ckey, ip, computerid, a_ckey, reason, expiration_time, duration, bantime, bantype FROM erro_ban WHERE (ckey = '[ckeytext]' [ipquery] [cidquery]) AND (bantype = 'PERMABAN' OR (bantype = 'TEMPBAN' AND expiration_time > Now())) AND isnull(unbanned)")
+	if(computer_id)
+		failedcid = 0
+
+//	#define IsBannedDebug
+
+	#ifdef IsBannedDebug
+	world << "ckey: [ckeytext]"
+	world << "address: [address]"
+	world << "CID: [computer_id]"
+	#endif
+
+	#ifdef IsBannedDebug
+	world << "in procedure IsBanned(), ckey = [ckeytext], ip = [address], computerid = [computer_id];"
+	#endif
+
+	//var/list/rowdata = database.execute("SELECT ckey, ip, computerid, a_ckey, reason, expiration_time, duration, bantime, bantype FROM ban WHERE (ckey = '[ckeytext]' [ipquery] [cidquery]) AND (bantype = 'PERMABAN' OR (bantype = 'TEMPBAN' AND expiration_time > [database.Now(1)])) AND unbanned = NULL;")
+//x = OR (bantype = 'TEMPBAN' AND expiration_time > [database.Now(1)])
+//y =  AND (bantype = 'PERMABAN' x) AND unbanned = NULL)
+
+
+	var/list/rowdata = database.execute("SELECT ckey, ip, computerid, a_ckey, reason, expiration_time, duration, bantime, bantype, unbanned FROM ban WHERE ((ckey = '[ckeytext]' OR ip = '[address ? address : "NOTHING"]' OR computerid = '[computer_id ? computer_id : "NOTHING"]') AND (bantype = 'PERMABAN' OR bantype = 'TEMPBAN'));")
+
+	#ifdef IsBannedDebug
+	world << "we managed to get past the ban SELECT query"
+	#endif
+
+	#ifdef IsBannedDebug
+	if (!islist(rowdata) || isemptylist(rowdata))
+		world << "no rowdata from the query"
+	#endif
+
+	if (islist(rowdata) && !isemptylist(rowdata))
+		#ifdef IsBannedDebug
+		world << "we have a 'rowdata' list."
+		#endif
+		var/pckey = rowdata["ckey"]
+		//var/pip = rowdata[2]
+		//var/pcid = rowdata[3]
+		var/ackey = rowdata["a_ckey"]
+		var/reason = rowdata["reason"]
+		var/expiration = rowdata["expiration_time"]
+		var/duration = rowdata["duration"]
+		var/bantime = rowdata["bantime"]
+		var/bantype = rowdata["bantype"]
+		var/unbanned = rowdata["unbanned"]
+
+		// if this is a tempban, check expiration_time
+
+		if (istext(expiration))
+			expiration = text2num(expiration)
+
+		if (bantype == "TEMPBAN" && expiration < database.Now())
+			#ifdef IsBannedDebug
+			world << "skipping temp ban"
+			#endif
+			goto skipban
+
+		if (unbanned != null)
+			#ifdef IsBannedDebug
+			world << "skipping removed ban"
+			#endif
+			goto skipban
+
+		var/expires = ""
+		if(text2num(duration) > 0)
+			expires = " The ban is for [duration] minutes and expires on [expiration] (server time)."
+
+		var/days_ago = smart_round(abs(world.realtime - bantime)/864000)
+		var/days_left = (duration == -1 ? "" : smart_round((expiration-bantime)/864000))
+		var/minutes_left = ((expiration-bantime)/600)
+
+		var/desc = "<font size = 3>You are banned.</font><br>"
+		desc += "<i>You, or another user of this computer or connection ([pckey]) is banned from playing here. The ban reason is:\n[reason]\n[duration != -1 ? "This ban was applied by [capitalize(ackey)] [days_ago] days ago." : ""]</i>"
+		desc += "<br>"
+
+		if (!expires)
+			desc += "<b>This is a permanent ban.</b>"
 		else
-			query = dbcon.NewQuery("SELECT ckey, ip, computerid, a_ckey, reason, expiration_time, duration, bantime, bantype FROM erro_ban WHERE (ckey = '[ckeytext]' [ipquery] [cidquery]) AND (bantype = 'PERMABAN' OR (bantype = 'TEMPBAN' AND expiration_time > Now())) AND isnull(unbanned) AND server_id = '[config.server_id]'")
+			desc += "<b>This ban is for [duration] minutes. Your ban expires in [days_left] days ([minutes_left] minutes).</b>"
 
-		query.Execute()
+		return list("reason"="[bantype]", "desc"="[desc]")
 
-		while(query.NextRow())
-			var/pckey = query.item[1]
-			//var/pip = query.item[2]
-			//var/pcid = query.item[3]
-			var/ackey = query.item[4]
-			var/reason = query.item[5]
-			var/expiration = query.item[6]
-			var/duration = query.item[7]
-			var/bantime = query.item[8]
-			var/bantype = query.item[9]
+	skipban
 
-			var/expires = ""
-			if(text2num(duration) > 0)
-				expires = " The ban is for [duration] minutes and expires on [expiration] UTC."
+	if (failedcid)
+		message_admins("[key] has logged in with a blank computer id in the ban check.")
+	if (failedip)
+		message_admins("[key] has logged in with a blank ip in the ban check.")
+	return ..()	//default pager ban stuff
 
-			var/desc = "\nReason: You, or another user of this computer or connection ([pckey]) is banned from playing here. The ban reason is:\n[reason]\nThis ban was applied by [ackey] on [bantime], [expires]"
+#endif
+#undef OVERRIDE_BAN_SYSTEM
 
-			key_cache[key] = 0
-			return list("reason"="[bantype]", "desc"="[desc]")
-
-		if (failedcid)
-			message_admins("[key] has logged in with a blank computer id in the ban check.")
-		if (failedip)
-			message_admins("[key] has logged in with a blank ip in the ban check.")
-		key_cache[key] = 0
-		return ..()	//default pager ban stuff

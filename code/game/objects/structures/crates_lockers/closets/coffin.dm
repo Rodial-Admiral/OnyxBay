@@ -4,11 +4,13 @@
 	icon_state = "coffin"
 	icon_closed = "coffin"
 	icon_opened = "coffin_open"
-	setup = 0
-	dremovable = 0
+	throwpass = TRUE
+
+/obj/structure/closet/coffin/anchored
+	anchored = TRUE
 
 /obj/structure/closet/coffin/update_icon()
-	if(!opened)
+	if (!opened)
 		icon_state = icon_closed
 	else
 		icon_state = icon_opened

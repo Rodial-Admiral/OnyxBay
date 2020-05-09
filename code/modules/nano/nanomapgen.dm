@@ -8,7 +8,7 @@
 #define NANOMAP_TERMINALERR 5
 #define NANOMAP_INPROGRESS 2
 #define NANOMAP_BADOUTPUT 2
-#define NANOMAP_SUCCESS 1
+#define NANOMAP_SUCCESS TRUE
 #define NANOMAP_WATCHDOGSUCCESS 4
 #define NANOMAP_WATCHDOGTERMINATE 3
 
@@ -20,10 +20,10 @@
 	set name = "Generate NanoUI Map"
 	set category = "Server"
 
-	if(holder)
-		nanomapgen_DumpTile(1, 1, text2num(input(usr,"Enter the Z level to generate")))
+	if (holder)
+		nanomapgen_DumpTile(1, TRUE, text2num(input(usr,"Enter the Z level to generate")))
 
-/client/proc/nanomapgen_DumpTile(startX = 1, startY = 1, currentZ = 1, endX = -1, endY = -1)
+/client/proc/nanomapgen_DumpTile(var/startX = TRUE, var/startY = TRUE, var/currentZ = TRUE, var/endX = -1, var/endY = -1)
 
 	if (endX < 0 || endX > world.maxx)
 		endX = world.maxx
@@ -32,34 +32,34 @@
 		endY = world.maxy
 
 	if (currentZ < 0 || currentZ > world.maxz)
-		to_chat(usr, "NanoMapGen: <B>ERROR: currentZ ([currentZ]) must be between 1 and [world.maxz]</B>")
+		usr << "NanoMapGen: <b>ERROR: currentZ ([currentZ]) must be between TRUE and [world.maxz]</b>"
 
 		sleep(3)
 		return NANOMAP_TERMINALERR
 
 	if (startX > endX)
-		to_chat(usr, "NanoMapGen: <B>ERROR: startX ([startX]) cannot be greater than endX ([endX])</B>")
+		usr << "NanoMapGen: <b>ERROR: startX ([startX]) cannot be greater than endX ([endX])</b>"
 
 		sleep(3)
 		return NANOMAP_TERMINALERR
 
 	if (startY > endX)
-		to_chat(usr, "NanoMapGen: <B>ERROR: startY ([startY]) cannot be greater than endY ([endY])</B>")
+		usr << "NanoMapGen: <b>ERROR: startY ([startY]) cannot be greater than endY ([endY])</b>"
 		sleep(3)
 		return NANOMAP_TERMINALERR
 
-	var/icon/Tile = icon(file("nano/mapbase1024.png"))
+	var/icon/Tile = icon(file("UI/mapbase1024.png"))
 	if (Tile.Width() != NANOMAP_MAX_ICON_DIMENSION || Tile.Height() != NANOMAP_MAX_ICON_DIMENSION)
-		world.log << "NanoMapGen: <B>ERROR: BASE IMAGE DIMENSIONS ARE NOT [NANOMAP_MAX_ICON_DIMENSION]x[NANOMAP_MAX_ICON_DIMENSION]</B>"
+		world.log << "NanoMapGen: <b>ERROR: BASE IMAGE DIMENSIONS ARE NOT [NANOMAP_MAX_ICON_DIMENSION]x[NANOMAP_MAX_ICON_DIMENSION]</b>"
 		sleep(3)
 		return NANOMAP_TERMINALERR
 
-	world.log << "NanoMapGen: <B>GENERATE MAP ([startX],[startY],[currentZ]) to ([endX],[endY],[currentZ])</B>"
-	to_chat(usr, "NanoMapGen: <B>GENERATE MAP ([startX],[startY],[currentZ]) to ([endX],[endY],[currentZ])</B>")
+	world.log << "NanoMapGen: <b>GENERATE MAP ([startX],[startY],[currentZ]) to ([endX],[endY],[currentZ])</b>"
+	usr << "NanoMapGen: <b>GENERATE MAP ([startX],[startY],[currentZ]) to ([endX],[endY],[currentZ])</b>"
 
-	var/count = 0;
-	for(var/WorldX = startX, WorldX <= endX, WorldX++)
-		for(var/WorldY = startY, WorldY <= endY, WorldY++)
+	var/count = FALSE;
+	for (var/WorldX = startX, WorldX <= endX, WorldX++)
+		for (var/WorldY = startY, WorldY <= endY, WorldY++)
 
 			var/atom/Turf = locate(WorldX, WorldY, currentZ)
 
@@ -70,19 +70,19 @@
 
 			count++
 
-			if (count % 8000 == 0)
-				world.log << "NanoMapGen: <B>[count] tiles done</B>"
+			if (count % 8000 == FALSE)
+				world.log << "NanoMapGen: <b>[count] tiles done</b>"
 				sleep(1)
 
-	var/mapFilename = "new_[map_image_file_name(currentZ)]"
+	var/mapFilename = "nanomap_z[currentZ]-new.png"
 
-	world.log << "NanoMapGen: <B>sending [mapFilename] to client</B>"
+	world.log << "NanoMapGen: <b>sending [mapFilename] to client</b>"
 
 	usr << browse(Tile, "window=picture;file=[mapFilename];display=0")
 
-	world.log << "NanoMapGen: <B>Done.</B>"
+	world.log << "NanoMapGen: <b>Done.</b>"
 
-	to_chat(usr, "NanoMapGen: <B>Done. File [mapFilename] uploaded to your cache.</B>")
+	usr << "NanoMapGen: <b>Done. File [mapFilename] uploaded to your cache.</b>"
 
 	if (Tile.Width() != NANOMAP_MAX_ICON_DIMENSION || Tile.Height() != NANOMAP_MAX_ICON_DIMENSION)
 		return NANOMAP_BADOUTPUT

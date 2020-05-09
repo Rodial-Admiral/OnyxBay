@@ -23,7 +23,6 @@ a, a:link, a:visited, a:active, .linkOn, .linkOff
 	padding: 1px 4px 1px 4px;
 	margin: 0 2px 0 0;
 	cursor:default;
-	white-space:nowrap;
 }
 
 a:hover 
@@ -312,12 +311,14 @@ div.notice
 	width: 100%;
 	clear: both;
 }
-
-.statusDisplay
+.lenta_scroll
 {
-	background: #000000;
-	color: #ffffff;
-	border: 1px solid #40628a;
+	background: #2e2e38;
+	color: white;
 	padding: 4px;
 	margin: 3px 0;
+	height: 520px;
+	overflow: auto;
+	border: 1px solid #ccc;
+	word-wrap: break-word;
 }

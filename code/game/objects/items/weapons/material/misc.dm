@@ -1,7 +1,7 @@
 /obj/item/weapon/material/harpoon
 	name = "harpoon"
-	sharp = 1
-	edge = 1
+	sharp = TRUE
+	edge = TRUE
 	desc = "Tharr she blows!"
 	icon_state = "harpoon"
 	item_state = "harpoon"
@@ -13,56 +13,47 @@
 	desc = "A very sharp axe blade upon a short fibremetal handle. It has a long history of chopping things, but now it is used for chopping wood."
 	icon = 'icons/obj/weapons.dmi'
 	icon_state = "hatchet"
-	force_const = 6.5
-	thrown_force_const = 5
-	force_divisor = 0.125 // 7.5 with hardness 60 (steel)
-	thrown_force_divisor = 0.5 // 10 with weight 20 (steel)
-	w_class = ITEM_SIZE_NORMAL
-	mod_weight = 1.0
-	mod_reach = 0.7
-	mod_handy = 1.2
-	sharp = 1
-	edge = 1
-	origin_tech = list(TECH_MATERIAL = 2, TECH_COMBAT = 1)
+	force_divisor = 0.2 // 12 with hardness 60 (steel)
+	thrown_force_divisor = 0.75 // 15 with weight 20 (steel)
+	w_class = 2
+	sharp = TRUE
+	edge = TRUE
+//	origin_tech = "materials=2;combat=1"
 	attack_verb = list("chopped", "torn", "cut")
-	applies_material_colour = 0
-	hitsound = "chop"
+	applies_material_colour = FALSE
+
+/obj/item/weapon/material/hatchet/unathiknife
+	name = "duelling knife"
+	desc = "A length of leather-bound wood studded with razor-sharp teeth. How crude."
+	icon = 'icons/obj/weapons.dmi'
+	icon_state = "unathiknife"
+	attack_verb = list("ripped", "torn", "cut")
+	drawsound = 'sound/items/unholster_knife.ogg'
 
 /obj/item/weapon/material/hatchet/tacknife
 	name = "tactical knife"
 	desc = "You'd be killing loads of people if this was Medal of Valor: Heroes of Space."
 	icon = 'icons/obj/weapons.dmi'
 	icon_state = "tacknife"
+	force_divisor = 0.5
 	item_state = "knife"
-	force_const = 5.0
-	w_class = ITEM_SIZE_SMALL
-	mod_weight = 0.65
-	mod_reach = 0.5
-	mod_handy = 1.25
 	attack_verb = list("stabbed", "chopped", "cut")
-	applies_material_colour = 1
+	applies_material_colour = TRUE
+	drawsound = 'sound/items/unholster_knife.ogg'
 
-/obj/item/weapon/material/hatchet/machete
-	name = "machete"
-	desc = "A long, sturdy blade with a rugged handle. Leading the way to cursed treasures since before space travel."
-	item_state = "machete"
-	w_class = ITEM_SIZE_NORMAL
-	slot_flags = SLOT_BELT
-	force_const = 10
-	thrown_force_const = 5
-
-/obj/item/weapon/material/hatchet/machete/Initialize()
-	icon_state = "machete[pick("","_red","_blue", "_black", "_olive")]"
-	. = ..()
-
-/obj/item/weapon/material/hatchet/machete/deluxe
-	name = "deluxe machete"
-	desc = "A fine example of a machete, with a polished blade, wooden handle and a leather cord loop."
-	force_const = 12.5
-
-/obj/item/weapon/material/hatchet/machete/deluxe/Initialize()
-	. = ..()
-	icon_state = "machetedx"
+	/obj/item/weapon/material/hatchet
+	name = "combat axe"
+	desc = "A very sharp axe blade upon a short wooden handle. It has a long history of chopping things, but now it is used for chopping down your enemie's."
+	icon = 'icons/obj/weapons.dmi'
+	icon_state = "combat axe"
+	force_divisor = 0.4 // 12 with hardness 60 (steel)
+	thrown_force_divisor = 0.75 // 15 with weight 20 (steel)
+	w_class = 2
+	sharp = TRUE
+	edge = TRUE
+//	origin_tech = "materials=2;combat=1"
+	attack_verb = list("chopped", "torn", "cut")
+	applies_material_colour = FALSE
 
 /obj/item/weapon/material/minihoe // -- Numbers
 	name = "mini hoe"
@@ -70,32 +61,22 @@
 	icon = 'icons/obj/weapons.dmi'
 	icon_state = "hoe"
 	item_state = "hoe"
-	force_const = 5.0
-	force_divisor = 0.125 // 2.5 with weight 20 (steel)
+	force_divisor = 0.25 // 5 with weight 20 (steel)
 	thrown_force_divisor = 0.25 // as above
-	w_class = ITEM_SIZE_SMALL
-	mod_weight = 0.4
-	mod_reach = 0.5
-	mod_handy = 1.0
+	w_class = 2
 	attack_verb = list("slashed", "sliced", "cut", "clawed")
 
 /obj/item/weapon/material/scythe
 	icon_state = "scythe0"
 	name = "scythe"
 	desc = "A sharp and curved blade on a long fibremetal handle, this tool makes it easy to reap what you sow."
-	force_const = 8.0
-	force_divisor = 0.2 // 12 with hardness 60 (steel)
+	force_divisor = 0.275 // 16 with hardness 60 (steel)
 	thrown_force_divisor = 0.25 // 5 with weight 20 (steel)
-	sharp = 1
-	edge = 1
-	throw_speed = 1
+	sharp = TRUE
+	edge = TRUE
+	throw_speed = TRUE
 	throw_range = 3
-	w_class = ITEM_SIZE_HUGE
-	mod_weight = 1.35
-	mod_reach = 1.5
-	mod_handy = 1.2
+	w_class = 4
 	slot_flags = SLOT_BACK
-	origin_tech = list(TECH_MATERIAL = 2, TECH_COMBAT = 2)
+//	origin_tech = "materials=2;combat=2"
 	attack_verb = list("chopped", "sliced", "cut", "reaped")
-
-

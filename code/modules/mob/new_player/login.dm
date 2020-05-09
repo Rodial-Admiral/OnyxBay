@@ -1,58 +1,33 @@
-/obj/screen/splash
-	name = "Baystation12"
-	desc = "This shouldn't be read."
-	screen_loc = "WEST,SOUTH"
-	icon = 'maps/exodus/exodus_lobby.dmi'
-	icon_state = "title"
-	layer = FULLSCREEN_LAYER
-	plane = FULLSCREEN_PLANE
-	var/client/holder
 
-/obj/screen/splash/New(client/C, visible) //TODO: Make this use INITIALIZE_IMMEDIATE, except its not easy
-	. = ..()
-
-	holder = C
-
-	if(!visible)
-		alpha = 0
-
-	holder.screen += src
-	icon_state = ""
-	icon = config.current_lobbyscreen
-
-/obj/screen/splash/proc/Fade(out, qdel_after = TRUE)
-	if(QDELETED(src))
-		return
-	if(out)
-		animate(src, alpha = 0, time = 30)
-	else
-		alpha = 0
-		animate(src, alpha = 255, time = 30)
-	if(qdel_after)
-		QDEL_IN(src, 30)
-
-/obj/screen/splash/Destroy()
-	if(holder)
-		holder.screen -= src
-		holder = null
-	return ..()
+/mob/new_player
+	var/client/my_client // Need to keep track of this ourselves, since by the time Logout() is called the client has already been nulled
 
 /mob/new_player/Login()
+	winset(src, null, "mainwindow.title='[station_name()]'")//For displaying the server name.
 	update_Login_details()	//handles setting lastKnownIP and computer_id for use by the ban systems as well as checking for multikeying
-	if(join_motd)
-		to_chat(src, "<div class=\"motd\">[join_motd]</div>")
-	client.show_regular_announcement()
-	to_chat(src, "<div class='info'>Game ID: <div class='danger'>[game_id]</div></div>")
 
-	if(!mind)
+	/* if our client was deleted (for example if we're banned), don't show the MOTD */
+	if (join_motd)
+		spawn (1)
+			if (client)
+				src << "<div class='info'>Game ID: <div class='danger'>[game_id]</div></div>"
+				see_personalized_MOTD()
+
+	if (!mind)
 		mind = new /datum/mind(key)
-		mind.active = 1
+		mind.active = TRUE
 		mind.current = src
 
 	loc = null
-	new /obj/screen/splash(client, TRUE)
+	client.screen += lobby_image
 	my_client = client
-	set_sight(sight|SEE_TURFS)
-	GLOB.player_list |= src
+	sight |= SEE_TURFS
+	player_list |= src
+
 	new_player_panel()
-	client.playtitlemusic()
+
+	spawn (10)
+		while (client && (!client.prefs || !client.prefs.ready))
+			sleep(1)
+		if (client)
+			client.playtitlemusic()

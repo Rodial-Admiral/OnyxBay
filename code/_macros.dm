@@ -1,206 +1,85 @@
-#define PUBLIC_GAME_MODE SSticker.master_mode
-
 #define Clamp(value, low, high) 	(value <= low ? low : (value >= high ? high : value))
-#define CLAMP01(x) 		(Clamp(x, 0, 1))
+//#define CLAMP01(x) 		(Clamp(x, FALSE, TRUE))
 
-#define get_turf(A) get_step(A,0)
+#define isdatum(A) istype(A, /datum)
 
-#define isAI(A) istype(A, /mob/living/silicon/ai)
+#define isimage(A) istype(A, /image)
 
-#define isalien(A) istype(A, /mob/living/carbon/alien)
+#define isicon(A) istype(A, /icon)
 
-#define isanimal(A) istype(A, /mob/living/simple_animal)
+#define isscreen(A) istype(A, /obj/screen)
+#define ishud(A) istype(A, /obj/screen)
 
-#define isairlock(A) istype(A, /obj/machinery/door/airlock)
+//MOB LEVEL
 
-#define isatom(A) istype(A, /atom)
-
-#define isbrain(A) istype(A, /mob/living/carbon/brain)
-
-#define iscarbon(A) istype(A, /mob/living/carbon)
-
-#define iscolorablegloves(A) (istype(A, /obj/item/clothing/gloves/color)||istype(A, /obj/item/clothing/gloves/insulated)||istype(A, /obj/item/clothing/gloves/thick))
-
-#define isclient(A) istype(A, /client)
-
-#define iscorgi(A) istype(A, /mob/living/simple_animal/corgi)
-
-#define is_drone(A) istype(A, /mob/living/silicon/robot/drone)
-
-#define isEye(A) istype(A, /mob/observer/eye)
-
-#define ishuman(A) istype(A, /mob/living/carbon/human)
-
-#define isitem(A) istype(A, /obj/item)
-
-#define islist(A) istype(A, /list)
-
-#define isliving(A) istype(A, /mob/living)
-
-#define isbot(A) istype(A, /mob/living/bot)
-
-#define ismouse(A) istype(A, /mob/living/simple_animal/mouse)
-
-#define ismovable(A) istype(A, /atom/movable)
-
-#define isnewplayer(A) istype(A, /mob/new_player)
-
-#define isobj(A) istype(A, /obj)
-
-#define isghost(A) istype(A, /mob/observer/ghost)
-
-#define isvrhuman(A) (istype(A, /mob/living/carbon/human/vrhuman))
+#define ismob(A) istype(A, /mob)
 
 #define isobserver(A) istype(A, /mob/observer)
 
-#define isorgan(A) istype(A, /obj/item/organ/external)
+#define isghost(A) istype(A, /mob/observer/ghost)
 
-#define isstack(A) istype(A, /obj/item/stack)
+#define isEye(A) istype(A, /mob/observer/eye)
 
-#define isspace(A) istype(A, /area/space)
+#define isnewplayer(A) istype(A, /mob/new_player)
+//++++++++++++++++++++++++++++++++++++++++++++++
 
-#define ispAI(A) istype(A, /mob/living/silicon/pai)
+#define isliving(A) istype(A, /mob/living)
+//---------------------------------------------------
 
-#define isrobot(A) istype(A, /mob/living/silicon/robot)
+#define iscarbon(A) istype(A, /mob/living/carbon)
 
-#define issilicon(A) istype(A, /mob/living/silicon)
+#define isalien(A) istype(A, /mob/living/carbon/alien)
 
 #define isslime(A) istype(A, /mob/living/carbon/slime)
 
-#define isunderwear(A) istype(A, /obj/item/underwear)
+#define isbrain(A) istype(A, /mob/living/carbon/brain)
 
-#define isvirtualmob(A) istype(A, /mob/observer/virtual)
+#define ishuman(A) istype(A, /mob/living/carbon/human)
+//---------------------------------------------------
 
-#define isweakref(A) istype(A, /weakref)
+#define isanimal(A) istype(A, /mob/living/simple_animal)
 
-#define attack_animation(A) if(istype(A)) A.do_attack_animation(src)
+#define iscorgi(A) istype(A, /mob/living/simple_animal/corgi)
 
-#define isopenspace(A) istype(A, /turf/simulated/open)
+#define ismouse(A) istype(A, /mob/living/simple_animal/mouse)
+//---------------------------------------------------
 
-#define isWrench(A) istype(A, /obj/item/weapon/wrench)
+//OBJECT LEVEL
+#define isobj(A) istype(A, /obj)
 
-#define isWelder(A) istype(A, /obj/item/weapon/weldingtool)
+#define isstructure(A) istype(A, /obj/structure)
 
-#define isCoil(A) istype(A, /obj/item/stack/cable_coil)
+#define isnonstructureobj(A) (isobj(A) && !isstructure(A))
 
-#define isWirecutter(A) istype(A, /obj/item/weapon/wirecutters)
+#define istank(A) istype(A, /obj/tank)
 
-#define isScrewdriver(A) istype(A, /obj/item/weapon/screwdriver)
+#define isairlock(A) istype(A, /obj/machinery/door/airlock)
 
-#define isMultitool(A) istype(A, /obj/item/device/multitool)
+#define isorgan(A) istype(A, /obj/item/organ/external)
 
-#define isCrowbar(A) istype(A, /obj/item/weapon/crowbar)
+#define isitem(A) istype(A, /obj/item)
 
-#define iscapacitor(A) istype(A, /obj/item/weapon/stock_parts/capacitor)
+#define iscloset(A) istype(A, /obj/structure/closet)
 
-#define ismicrolaser(A) istype(A, /obj/item/weapon/stock_parts/micro_laser)
+#define islist(A) istype(A, /list)
 
-#define ismatterbin(A) istype(A, /obj/item/weapon/stock_parts/matter_bin)
+#define isatom(A) istype(A, /atom)
+#define ismovable(A) istype(A, /atom/movable)
 
-#define isscanner(A) istype(A, /obj/item/weapon/stock_parts/scanning_module)
+#define attack_animation(A) if (istype(A)) A.do_attack_animation(src)
 
-#define ismanipulator(A) istype(A, /obj/item/weapon/stock_parts/manipulator)
+//TURF LEVEL
 
-#define isovermind(A) istype(A, /mob/blob)
+#define iswall(X) istype(X, /turf/wall)
 
-#define ismech(A) istype(A, /obj/mecha)
+#define isfloor(X) istype(X, /turf/floor)
 
-#define iseffect(A) istype(A, /obj/effect)
+#define istrueflooring(X) (isfloor(X) && !istype(X, /turf/floor/plating))
 
-#define sequential_id(key) uniqueness_repository.Generate(/datum/uniqueness_generator/id_sequential, key)
+// other
+#define isclient(A) istype(A, /client)
 
-#define random_id(key,min_id,max_id) uniqueness_repository.Generate(/datum/uniqueness_generator/id_random, key, min_id, max_id)
+// Tests if an datum has been deleted.
+#define isDeleted(D) (!D || D:gcDestroyed)
 
-#define sound_to(target, sound)                             target << sound
-#define to_file(file_entry, source_var)                     file_entry << source_var
-#define from_file(file_entry, target_var)                   file_entry >> target_var
-#define show_browser(target, browser_content, browser_name) target << browse(browser_content, browser_name)
-#define close_browser(target, browser_name)                 target << browse(null, browser_name)
-#define show_image(target, image)                           target << image
-#define send_rsc(target, rsc_content, rsc_name)             target << browse_rsc(rsc_content, rsc_name)
-
-#define MAP_IMAGE_PATH "nano/images/[GLOB.using_map.path]/"
-
-#define map_image_file_name(z_level) "[GLOB.using_map.path]-[z_level].png"
-
-#define RANDOM_BLOOD_TYPE pick(4;"O-", 36;"O+", 3;"A-", 28;"A+", 1;"B-", 20;"B+", 1;"AB-", 5;"AB+")
-
-#define any2ref(x) "\ref[x]"
-
-#define CanInteract(user, state) (CanUseTopic(user, state) == STATUS_INTERACTIVE)
-
-#define CanInteractWith(user, target, state) (target.CanUseTopic(user, state) == STATUS_INTERACTIVE)
-
-#define CanPhysicallyInteract(user) CanInteract(user, GLOB.physical_state)
-
-#define CanPhysicallyInteractWith(user, target) CanInteractWith(user, target, GLOB.physical_state)
-
-#define QDEL_NULL_LIST(x) if(x) { for(var/y in x) { qdel(y) } ; x = null }
-
-#define QDEL_NULL(x) if(x) { qdel(x) ; x = null }
-
-#define QDEL_IN(item, time) addtimer(CALLBACK(GLOBAL_PROC, .proc/qdel, item), time, TIMER_STOPPABLE)
-
-#define ARGS_DEBUG log_debug("[__FILE__] - [__LINE__]") ; for(var/arg in args) { log_debug("\t[log_info_line(arg)]") }
-
-// Helper macros to aid in optimizing lazy instantiation of lists.
-// All of these are null-safe, you can use them without knowing if the list var is initialized yet
-
-//Picks from the list, with some safeties, and returns the "default" arg if it fails
-#define DEFAULTPICK(L, default) ((istype(L, /list) && L:len) ? pick(L) : default)
-// Ensures L is initailized after this point
-#define LAZYINITLIST(L) if (!L) L = list()
-// Sets a L back to null iff it is empty
-#define UNSETEMPTY(L) if (L && !L.len) L = null
-// Removes I from list L, and sets I to null if it is now empty
-#define LAZYREMOVE(L, I) if(L) { L -= I; if(!L.len) { L = null; } }
-// Adds I to L, initalizing L if necessary
-#define LAZYADD(L, I) if(!L) { L = list(); } L += I;
-// Adds I to L, initalizing L if necessary, if I is not already in L
-#define LAZYDISTINCTADD(L, I) if(!L) { L = list(); } L |= I;
-// Sets L[A] to I, initalizing L if necessary
-#define LAZYSET(L, A, I) if(!L) { L = list(); } L[A] = I;
-// Reads I from L safely - Works with both associative and traditional lists.
-#define LAZYACCESS(L, I) (L ? (isnum(I) ? (I > 0 && I <= L.len ? L[I] : null) : L[I]) : null)
-// Reads the length of L, returning 0 if null
-#define LAZYLEN(L) length(L)
-// Safely checks if I is in L
-#define LAZYISIN(L, I) (L ? (I in L) : FALSE)
-// Null-safe L.Cut()
-#define LAZYCLEARLIST(L) if(L) L.Cut()
-// Reads L or an empty list if L is not a list.  Note: Does NOT assign, L may be an expression.
-#define SANITIZE_LIST(L) ( islist(L) ? L : list() )
-
-// Insert an object A into a sorted list using cmp_proc (/code/_helpers/cmp.dm) for comparison.
-#define ADD_SORTED(list, A, cmp_proc) if(!list.len) {list.Add(A)} else {list.Insert(FindElementIndex(A, list, cmp_proc), A)}
-
-//Currently used in SDQL2 stuff
-#define send_output(target, msg, control) target << output(msg, control)
-#define send_link(target, url) target << link(url)
-
-// Spawns multiple objects of the same type
-#define cast_new(type, num, args...) if((num) == 1) { new type(args) } else { for(var/i=0;i<(num),i++) { new type(args) } }
-
-#define FLAGS_EQUALS(flag, flags) ((flag & (flags)) == (flags))
-
-#define JOINTEXT(X) jointext(X, null)
-
-#define SPAN_NOTICE(X) "<span class='notice'>[X]</span>"
-
-#define SPAN_WARNING(X) "<span class='warning'>[X]</span>"
-
-#define SPAN_DANGER(X) "<span class='danger'>[X]</span>"
-
-#define SPAN_OCCULT(X) "<span class='cult'>[X]</span>"
-
-#define SPAN_DEADSAY(X) "<span class='deadsay'>[X]</span>"
-
-#define FONT_SMALL(X) "<font size='1'>[X]</font>"
-
-#define FONT_NORMAL(X) "<font size='2'>[X]</font>"
-
-#define FONT_LARGE(X) "<font size='3'>[X]</font>"
-
-#define FONT_HUGE(X) "<font size='4'>[X]</font>"
-
-#define FONT_GIANT(X) "<font size='5'>[X]</font>"
+#define forrange(x) for (var/v = 1 to x)

@@ -1,5 +1,5 @@
 /datum
-	var/tmp/weakref/weakref
+	var/weakref
 
 /datum/Destroy()
 	weakref = null // Clear this reference to ensure it's kept for as brief duration as possible.
@@ -7,38 +7,25 @@
 
 //obtain a weak reference to a datum
 /proc/weakref(datum/D)
-	if(!istype(D))
+	if (D.gcDestroyed)
 		return
-	if(QDELETED(D))
-		return
-	if(istype(D, /weakref))
-		return D
-	if(!D.weakref)
-		D.weakref = new /weakref(D)
+	if (!D.weakref)
+		D.weakref = new /datum/weakref(D)
 	return D.weakref
 
-/weakref
+/datum/weakref
 	var/ref
 
-	// Handy info for debugging
-	var/tmp/ref_name
-	var/tmp/ref_type
-
-/weakref/New(datum/D)
+/datum/weakref/New(datum/D)
 	ref = "\ref[D]"
-	ref_name = "[D]"
-	ref_type = D.type
 
-/weakref/Destroy()
+/datum/weakref/Destroy()
 	// A weakref datum should not be manually destroyed as it is a shared resource,
 	//  rather it should be automatically collected by the BYOND GC when all references are gone.
-	return QDEL_HINT_IWILLGC
+	return FALSE
 
-/weakref/proc/resolve()
+/datum/weakref/proc/resolve()
 	var/datum/D = locate(ref)
-	if(D && D.weakref == src)
+	if (D && D.weakref == src)
 		return D
 	return null
-
-/weakref/get_log_info_line()
-	return "[ref_name] ([ref_type]) ([ref]) (WEAKREF)"

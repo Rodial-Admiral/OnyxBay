@@ -10,13 +10,15 @@
 	Note that in all cases the neighbor is handled simply; this is usually the user's mob, in which case it is up to you
 	to check that the mob is not inside of something
 */
-/atom/proc/Adjacent(atom/neighbor) // basic inheritance, unused
-	return 0
+/atom/proc/Adjacent(var/atom/neighbor) // basic inheritance, unused
+	return FALSE
 
 // Not a sane use of the function and (for now) indicative of an error elsewhere
-/area/Adjacent(atom/neighbor)
+/area/Adjacent(var/atom/neighbor)
 	CRASH("Call to /area/Adjacent(), unimplemented proc")
 
+/atom/proc/rangedAdjacent(var/atom/neighbor)
+	return TRUE
 
 /*
 	Adjacency (to turf):
@@ -25,52 +27,80 @@
 	* If you are diagonally adjacent, ensure you can pass through at least one of the mutually adjacent square.
 		* Passing through in this case ignores anything with the throwpass flag, such as tables, racks, and morgue trays.
 */
-/turf/Adjacent(atom/neighbor, atom/target = null)
+/turf/Adjacent(var/atom/neighbor, var/atom/target = null)
 	var/turf/T0 = get_turf(neighbor)
-	if(T0 == src)
-		return 1
-	if(!T0 || T0.z != z)
-		return 0
-	if(get_dist(src,T0) > 1)
-		return 0
+	if (T0 == src)
+		return TRUE
+	if (get_dist(src,T0) > 1 || (z!=T0.z))
+		return FALSE
 
-	if(T0.x == x || T0.y == y)
+	if (T0.x == x || T0.y == y)
 		// Check for border blockages
-		return T0.ClickCross(get_dir(T0,src), border_only = 1) && src.ClickCross(get_dir(src,T0), border_only = 1, target_atom = target)
+		return T0.ClickCross(get_dir(T0,src), border_only = TRUE) && ClickCross(get_dir(src,T0), border_only = TRUE, target_atom = target)
 
 	// Not orthagonal
 	var/in_dir = get_dir(neighbor,src) // eg. northwest (1+8)
 	var/d1 = in_dir&(in_dir-1)		// eg west		(1+8)&(8) = 8
-	var/d2 = in_dir - d1			// eg north		(1+8) - 8 = 1
+	var/d2 = in_dir - d1			// eg north		(1+8) - 8 = TRUE
 
-	for(var/d in list(d1,d2))
-		if(!T0.ClickCross(d, border_only = 1))
+	for (var/d in list(d1,d2))
+		if (!T0.ClickCross(d, border_only = TRUE))
 			continue // could not leave T0 in that direction
 
 		var/turf/T1 = get_step(T0,d)
-		if(!T1 || T1.density || !T1.ClickCross(get_dir(T1,T0) | get_dir(T1,src), border_only = 0))
+		if (!T1 || T1.density || !T1.ClickCross(get_dir(T1,T0) | get_dir(T1,src), border_only = FALSE))
 			continue // couldn't enter or couldn't leave T1
 
-		if(!src.ClickCross(get_dir(src,T1), border_only = 1, target_atom = target))
+		if (!ClickCross(get_dir(src,T1), border_only = TRUE, target_atom = target))
 			continue // could not enter src
 
-		return 1 // we don't care about our own density
-	return 0
+		return TRUE // we don't care about our own density
+	return FALSE
+
+/turf/rangedAdjacent(var/atom/neighbor, var/atom/target = null)
+	var/turf/T0 = get_turf(neighbor)
+	if (T0 == src)
+		return TRUE
+	if (get_dist(src,T0) > 5 || (z!=T0.z))
+		return FALSE
+
+	if (T0.x == x || T0.y == y)
+		// Check for border blockages
+		return T0.ClickCross(get_dir(T0,src), border_only = TRUE) && ClickCross(get_dir(src,T0), border_only = TRUE, target_atom = target)
+
+	// Not orthagonal
+	var/in_dir = get_dir(neighbor,src) // eg. northwest (1+8)
+	var/d1 = in_dir&(in_dir-1)		// eg west		(1+8)&(8) = 8
+	var/d2 = in_dir - d1			// eg north		(1+8) - 8 = TRUE
+
+	for (var/d in list(d1,d2))
+		if (!T0.ClickCross(d, border_only = TRUE))
+			continue // could not leave T0 in that direction
+
+		var/turf/T1 = get_step(T0,d)
+		if (!T1 || T1.density || !T1.ClickCross(get_dir(T1,T0) | get_dir(T1,src), border_only = FALSE))
+			continue // couldn't enter or couldn't leave T1
+
+		if (!ClickCross(get_dir(src,T1), border_only = TRUE, target_atom = target))
+			continue // could not enter src
+
+		return TRUE // we don't care about our own density
+	return FALSE
 
 /*
 Quick adjacency (to turf):
 * If you are in the same turf, always true
 * If you are not adjacent, then false
 */
-/turf/proc/AdjacentQuick(atom/neighbor, atom/target = null)
+/turf/proc/AdjacentQuick(var/atom/neighbor, var/atom/target = null)
 	var/turf/T0 = get_turf(neighbor)
-	if(T0 == src)
-		return 1
+	if (T0 == src)
+		return TRUE
 
-	if(get_dist(src,T0) > 1)
-		return 0
+	if (get_dist(src,T0) > 1 || (z!=T0.z))
+		return FALSE
 
-	return 1
+	return TRUE
 
 /*
 	Adjacency (to anything else):
@@ -80,21 +110,21 @@ Quick adjacency (to turf):
 	Note: Multiple-tile objects are created when the bound_width and bound_height are creater than the tile size.
 	This is not used in stock /tg/station currently.
 */
-/atom/movable/Adjacent(atom/neighbor)
-	if(neighbor == loc) return 1
-	if(!isturf(loc)) return 0
-	for(var/turf/T in locs)
-		if(isnull(T)) continue
-		if(T.Adjacent(neighbor,src)) return 1
-	return 0
+/atom/movable/Adjacent(var/atom/neighbor)
+	if (neighbor == loc) return TRUE
+	if (!isturf(loc)) return FALSE
+	for (var/turf/T in locs)
+		if (isnull(T)) continue
+		if (T.Adjacent(neighbor,src)) return TRUE
+	return FALSE
 
 // This is necessary for storage items not on your person.
-/obj/item/Adjacent(atom/neighbor, recurse = 1)
-	if(neighbor == loc) return 1
-	if(istype(loc,/obj/item))
-		if(recurse > 0)
+/obj/item/Adjacent(var/atom/neighbor, var/recurse = TRUE)
+	if (neighbor == loc) return TRUE
+	if (istype(loc,/obj/item))
+		if (recurse > 0)
 			return loc.Adjacent(neighbor,recurse - 1)
-		return 0
+		return FALSE
 	return ..()
 /*
 	Special case: This allows you to reach a door when it is visally on top of,
@@ -104,37 +134,32 @@ Quick adjacency (to turf):
 	This can be safely removed if border firedoors are ever moved to be on top of doors
 	so they can be interacted with without opening the door.
 */
-/obj/machinery/door/Adjacent(atom/neighbor)
-	var/obj/machinery/door/firedoor/border_only/BOD = locate() in loc
-	if(BOD)
-		BOD.throwpass = 1 // allow click to pass
-		. = ..()
-		BOD.throwpass = 0
-		return .
+/*
+/obj/machinery/door/Adjacent(var/atom/neighbor)
 	return ..()
-
+*/
 
 /*
 	This checks if you there is uninterrupted airspace between that turf and this one.
-	This is defined as any dense ATOM_FLAG_CHECKS_BORDER object, or any dense object without throwpass.
+	This is defined as any dense ON_BORDER object, or any dense object without throwpass.
 	The border_only flag allows you to not objects (for source and destination squares)
 */
-/turf/proc/ClickCross(target_dir, border_only, target_atom = null)
-	for(var/obj/O in src)
-		if( !O.density || O == target_atom || O.throwpass) continue // throwpass is used for anything you can click through
+/turf/proc/ClickCross(var/target_dir, var/border_only, var/target_atom = null)
+	for (var/obj/O in src)
+		if ( !O.density || O == target_atom || O.throwpass) continue // throwpass is used for anything you can click through
 
-		if(O.atom_flags & ATOM_FLAG_CHECKS_BORDER) // windows have throwpass but are on border, check them first
-			if( O.dir & target_dir || O.dir&(O.dir-1) ) // full tile windows are just diagonals mechanically
+		if ( O.flags&ON_BORDER) // windows have throwpass but are on border, check them first
+			if ( O.dir & target_dir || O.dir&(O.dir-1) ) // full tile windows are just diagonals mechanically
 				var/obj/structure/window/W = target_atom
-				if(istype(W))
-					if(!W.is_fulltile())	//exception for breaking full tile windows on top of single pane windows
-						return 0
+				if (istype(W))
+					if (!W.is_fulltile())	//exception for breaking full tile windows on top of single pane windows
+						return FALSE
 				else
-					return 0
+					return FALSE
 
-		else if( !border_only ) // dense, not on border, cannot pass over
-			return 0
-	return 1
+		else if ( !border_only ) // dense, not on border, cannot pass over
+			return FALSE
+	return TRUE
 /*
 	Aside: throwpass does not do what I thought it did originally, and is only used for checking whether or not
 	a thrown object should stop after already successfully entering a square.  Currently the throw code involved
